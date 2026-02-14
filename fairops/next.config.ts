@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Use fairops as workspace root so Turbopack doesn't warn about multiple lockfiles
+  turbopack: { root: process.cwd() },
 };
 
 export default nextConfig;
