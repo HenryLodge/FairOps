@@ -1,24 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowUp, Paintbrush, Settings, Plus, FlaskConical, Waves, User, Store } from 'lucide-react';
+import { ArrowUp, Paintbrush, Settings, Plus, Activity, Circle, Car, Home, UtensilsCrossed, Camera, Info } from 'lucide-react';
 import Link from 'next/link';
 import { useDashboardStats, formatRevenue } from './DashboardStatsContext';
 
 const COUNTER_ITEMS = [
-  { id: 'tools', label: 'Tools', icon: FlaskConical },
-  { id: 'waves', label: 'Flow', icon: Waves },
-  { id: 'people', label: 'People', icon: User },
-  { id: 'vend', label: 'Vend', icon: Store },
+  { id: 'roller_coaster', label: 'Roller Coaster', icon: Activity },
+  { id: 'ferris_wheel', label: 'Ferris Wheel', icon: Circle },
+  { id: 'bumper_car', label: 'Bumper Car', icon: Car },
+  { id: 'fun_house', label: 'Fun House', icon: Home },
+  { id: 'food_stand', label: 'Food Stand', icon: UtensilsCrossed },
+  { id: 'photo_booth', label: 'Photo Booth', icon: Camera },
+  { id: 'info_booth', label: 'Info Booth', icon: Info },
 ] as const;
 
 export function Sidebar() {
   const { stats } = useDashboardStats();
   const [counts, setCounts] = useState<Record<string, number>>({
-    tools: 0,
-    waves: 0,
-    people: 0,
-    vend: 0,
+    roller_coaster: 0,
+    ferris_wheel: 0,
+    bumper_car: 0,
+    fun_house: 0,
+    food_stand: 0,
+    photo_booth: 0,
+    info_booth: 0,
   });
 
   const adjust = (id: string, delta: number) => {
@@ -27,7 +33,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className="dashboard-sidebar flex h-full w-56 flex-col"
+      className="dashboard-sidebar flex h-full w-72 flex-col shrink-0"
       style={{ background: 'var(--color-surface)', color: 'var(--color-text-secondary)' }}
     >
       <div className="border-b p-3" style={{ borderColor: 'var(--color-border)' }}>
@@ -68,7 +74,7 @@ export function Sidebar() {
         <Link
           href="/dashboard/new"
           className="flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:opacity-90"
-          style={{ color: 'var(--color-text)' }}
+          style={{ color: 'var(--color-accent)' }}
         >
           <Plus className="h-4 w-4 shrink-0" />
           <span>New event</span>
@@ -89,7 +95,7 @@ export function Sidebar() {
                 type="button"
                 onClick={() => adjust(id, -1)}
                 className="flex h-6 w-6 items-center justify-center rounded hover:opacity-80"
-                style={{ color: 'var(--color-text-tertiary)' }}
+                style={{ color: 'var(--color-accent)' }}
                 aria-label={`Decrease ${label}`}
               >
                 −
@@ -101,7 +107,7 @@ export function Sidebar() {
                 type="button"
                 onClick={() => adjust(id, 1)}
                 className="flex h-6 w-6 items-center justify-center rounded hover:opacity-80"
-                style={{ color: 'var(--color-text-tertiary)' }}
+                style={{ color: 'var(--color-accent)' }}
                 aria-label={`Increase ${label}`}
               >
                 +

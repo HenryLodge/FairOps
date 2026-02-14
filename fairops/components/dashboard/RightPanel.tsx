@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MessageSquare, Send } from 'lucide-react';
+import { MessageSquare, Send, PanelRightClose } from 'lucide-react';
 
 const QUICK_ACTIONS = [
   'Vendor mix analysis',
@@ -27,7 +27,11 @@ const PLACEHOLDER_MESSAGES: Message[] = [
   },
 ];
 
-export function RightPanel() {
+type RightPanelProps = {
+  onClose?: () => void;
+};
+
+export function RightPanel({ onClose }: RightPanelProps) {
   const [input, setInput] = useState('');
   const [messages] = useState<Message[]>(PLACEHOLDER_MESSAGES);
 
@@ -44,14 +48,27 @@ export function RightPanel() {
 
   return (
     <aside
-      className="dashboard-right-panel flex h-full w-96 flex-col border-l"
+      className="dashboard-right-panel flex h-full w-full min-w-0 flex-col"
       style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
     >
-      <header className="flex shrink-0 items-center gap-2 border-b px-4 py-3" style={{ borderColor: 'var(--color-border)' }}>
-        <MessageSquare className="h-5 w-5" style={{ color: 'var(--color-text-tertiary)' }} aria-hidden />
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
-          Copilot
-        </h2>
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b px-4 py-3" style={{ borderColor: 'var(--color-border)' }}>
+        <div className="flex min-w-0 items-center gap-2">
+          <MessageSquare className="h-5 w-5 shrink-0" style={{ color: 'var(--color-text-tertiary)' }} aria-hidden />
+          <h2 className="truncate text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+            Copilot
+          </h2>
+        </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md hover:opacity-80"
+            style={{ color: 'var(--color-text-secondary)' }}
+            aria-label="Close Copilot panel"
+          >
+            <PanelRightClose className="h-4 w-4" />
+          </button>
+        )}
       </header>
 
       <div className="copilot-messages flex min-h-0 flex-1 flex-col overflow-auto p-3">

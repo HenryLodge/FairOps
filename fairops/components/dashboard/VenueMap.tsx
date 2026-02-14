@@ -516,7 +516,7 @@ export default function VenueMap({
             onClick={() => adjustCols(-1)}
             disabled={cols <= MIN_DIM}
             className="flex h-7 w-7 items-center justify-center rounded hover:opacity-80 disabled:opacity-40"
-            style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)' }}
+            style={{ color: 'var(--color-accent)' }}
             aria-label="Remove column"
           >
             <Minus className="h-3 w-3" />
@@ -529,7 +529,7 @@ export default function VenueMap({
             onClick={() => adjustCols(1)}
             disabled={cols >= MAX_DIM}
             className="flex h-7 w-7 items-center justify-center rounded hover:opacity-80 disabled:opacity-40"
-            style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)' }}
+            style={{ color: 'var(--color-accent)' }}
             aria-label="Add column"
           >
             <Plus className="h-3 w-3" />
@@ -546,7 +546,7 @@ export default function VenueMap({
             onClick={() => adjustRows(-1)}
             disabled={rows <= MIN_DIM}
             className="flex h-7 w-7 items-center justify-center rounded hover:opacity-80 disabled:opacity-40"
-            style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)' }}
+            style={{ color: 'var(--color-accent)' }}
             aria-label="Remove row"
           >
             <Minus className="h-3 w-3" />
@@ -559,7 +559,7 @@ export default function VenueMap({
             onClick={() => adjustRows(1)}
             disabled={rows >= MAX_DIM}
             className="flex h-7 w-7 items-center justify-center rounded hover:opacity-80 disabled:opacity-40"
-            style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)' }}
+            style={{ color: 'var(--color-accent)' }}
             aria-label="Add row"
           >
             <Plus className="h-3 w-3" />

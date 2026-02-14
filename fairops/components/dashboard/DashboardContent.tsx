@@ -301,7 +301,7 @@ export function DashboardContent() {
             onChange={handleEventChange}
             className="w-full max-w-md rounded-lg border px-3 py-2 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)]"
             style={{
-              borderColor: 'var(--color-border)',
+              borderColor: 'var(--color-accent)',
               background: 'var(--color-surface)',
               color: 'var(--color-text)',
             }}
@@ -327,9 +327,9 @@ export function DashboardContent() {
           href="/dashboard/new"
           className="shrink-0 rounded-lg border px-4 py-2 text-sm font-medium hover:opacity-90"
           style={{
-            borderColor: 'var(--color-border)',
+            borderColor: 'var(--color-accent)',
             background: 'var(--color-surface)',
-            color: 'var(--color-text-secondary)',
+            color: 'var(--color-accent)',
           }}
         >
           New event

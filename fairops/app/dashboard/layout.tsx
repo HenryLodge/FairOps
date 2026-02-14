@@ -1,6 +1,6 @@
 import { DashboardStatsProvider } from '@/components/dashboard/DashboardStatsContext';
+import { DashboardPanels } from '@/components/dashboard/DashboardPanels';
 import { Sidebar } from '@/components/dashboard/Sidebar';
-import { RightPanel } from '@/components/dashboard/RightPanel';
 
 export default function DashboardLayout({
   children,
@@ -11,10 +11,7 @@ export default function DashboardLayout({
     <DashboardStatsProvider>
       <div className="flex h-screen w-full overflow-hidden">
         <Sidebar />
-        <main className="dashboard-main min-h-0 flex-1 overflow-auto" style={{ background: 'var(--color-bg)' }}>
-          {children}
-        </main>
-        <RightPanel />
+        <DashboardPanels>{children}</DashboardPanels>
       </div>
     </DashboardStatsProvider>
   );
