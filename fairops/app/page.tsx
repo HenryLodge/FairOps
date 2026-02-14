@@ -2,7 +2,6 @@ import { auth0 } from "@/lib/auth0";
 import { getProfileByAuth0Sub } from "@/lib/profile";
 import { redirect } from "next/navigation";
 import LoginButton from "@/components/LoginButton";
-import LogoutButton from "@/components/LogoutButton";
 
 const CLAIMS_NAMESPACE = "https://localhost:3000";
 
