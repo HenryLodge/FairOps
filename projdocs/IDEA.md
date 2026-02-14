@@ -1,0 +1,5 @@
+## "Lot Boss" — AI-Powered Carnival Operations Platform
+A management platform for people who actually run carnivals, fairs, and festivals. Auth0 handles multi-role access (organizer, vendor, ride operator, inspector). Gemini acts as an operations copilot — you feed it your venue layout, vendor applications, expected attendance, and it optimizes booth placement, suggests pricing strategies, flags safety concerns, and generates marketing copy. Solana handles the financial layer: vendor booth payments, revenue splits, and real-time transparent accounting between organizers and vendors via smart contracts. No more sketchy cash handshakes at the county fair.
+Why it's strong: Real problem, real market. Carnival/fair organizers still run on spreadsheets and cash. Transparent on-chain payments between organizers and vendors is a genuinely useful Web3 use case.
+
+TLDR: cursor but for carnival layout planning
