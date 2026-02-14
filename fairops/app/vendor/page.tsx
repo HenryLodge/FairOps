@@ -1,41 +1,27 @@
 import { requireRole } from "@/lib/auth";
-import LogoutButton from "@/components/LogoutButton";
-import Image from "next/image";
+import Link from "next/link";
+import { Settings } from "lucide-react";
+import { VendorPortalContent } from "../../components/vendor/VendorPortalContent";
 
 export default async function VendorPage() {
-  const { user, roles } = await requireRole("vendor");
+  await requireRole("vendor");
 
   return (
-    <div className="app-container">
-      <div className="main-card-wrapper">
-        <h1 className="main-title">Vendor Portal</h1>
-
-        <div className="action-card">
-          <div className="logged-in-section">
-            <Image
-              src={user.picture || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Ccircle cx='48' cy='48' r='48' fill='%2363b3ed'/%3E%3C/svg%3E"}
-              alt={user.name || "User"}
-              className="profile-picture"
-              width={96}
-              height={96}
-              unoptimized
-            />
-            <h2 className="profile-name">{user.name}</h2>
-            <p className="profile-email">{user.email}</p>
-            <p className="action-text">
-              Role: <strong>{roles.join(", ")}</strong>
-            </p>
-          </div>
-        </div>
-
-        <div className="action-card">
-          <p className="action-text">
-            This is your vendor portal. Booth management and event sign-up
-            features will appear here.
-          </p>
-        </div>
-
-        <LogoutButton />
+    <div className="mx-auto flex min-h-full max-w-3xl flex-col p-4">
+      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-zinc-200 pb-4 dark:border-zinc-700">
+        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+          Vendor Portal
+        </h1>
+        <Link
+          href="/settings"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+          aria-label="Settings"
+        >
+          <Settings className="h-4 w-4" />
+        </Link>
+      </header>
+      <div className="min-h-0 flex-1 pt-6">
+        <VendorPortalContent />
       </div>
     </div>
   );

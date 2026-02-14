@@ -1,4 +1,5 @@
 import { auth0 } from "./auth0";
+import { getProfileByAuth0Sub } from "./profile";
 import { redirect } from "next/navigation";
 
 /**
@@ -6,6 +7,21 @@ import { redirect } from "next/navigation";
  * Must match the namespace configured in your Auth0 Action.
  */
 const CLAIMS_NAMESPACE = "https://localhost:3000";
+
+async function resolveRoles(
+  user: { sub: string; [key: string]: unknown }
+): Promise<AppRole[]> {
+  const jwtRoles: AppRole[] =
+    (user[`${CLAIMS_NAMESPACE}/roles`] as AppRole[] | undefined) ??
+    (user["localhost:3000/roles"] as AppRole[] | undefined) ??
+    [];
+  if (jwtRoles.length > 0) return jwtRoles;
+  const profile = await getProfileByAuth0Sub(user.sub);
+  if (profile?.role === "organizer" || profile?.role === "vendor") {
+    return [profile.role];
+  }
+  return [];
+}
 
 export type AppRole = "organizer" | "vendor";
 
@@ -42,11 +58,7 @@ export async function verifyAuth(
   }
 
   const user = session.user;
-  const roles: AppRole[] =
-    (user[`${CLAIMS_NAMESPACE}/roles`] as AppRole[] | undefined) ??
-    (user['localhost:3000/roles'] as AppRole[] | undefined) ??
-    [];
-
+  const roles = await resolveRoles(user as { sub: string; [key: string]: unknown });
   return { user: user as AuthResult["user"], roles };
 }
 
@@ -92,11 +104,7 @@ export async function getSessionForApi(): Promise<
   }
 
   const user = session.user;
-  const roles: string[] =
-    (user[`${CLAIMS_NAMESPACE}/roles`] as string[] | undefined) ??
-    (user['localhost:3000/roles'] as string[] | undefined) ??
-    [];
-
+  const roles = await resolveRoles(user as { sub: string; [key: string]: unknown });
   return {
     auth: {
       user: user as { sub: string; [key: string]: unknown },
