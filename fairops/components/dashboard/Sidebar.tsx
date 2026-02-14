@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowUp, Paintbrush, FlaskConical, Waves, User, Store } from 'lucide-react';
+import { ArrowUp, Paintbrush, Settings, FlaskConical, Waves, User, Store } from 'lucide-react';
 import Link from 'next/link';
 
 const COUNTER_ITEMS = [
@@ -26,9 +26,18 @@ export function Sidebar() {
   return (
     <aside className="dashboard-sidebar flex h-full w-56 flex-col bg-zinc-900 text-zinc-200">
       <div className="border-b border-zinc-700 p-3">
-        <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">
-          drag & drop
-        </p>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+            drag & drop
+          </p>
+          <Link
+            href="/settings"
+            className="flex h-9 w-9 items-center justify-center rounded-md bg-zinc-800 hover:bg-zinc-700"
+            aria-label="Settings"
+          >
+            <Settings className="h-4 w-4" />
+          </Link>
+        </div>
         <div className="flex gap-2">
           <Link
             href="#"

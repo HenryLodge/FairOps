@@ -52,3 +52,18 @@ CREATE TABLE IF NOT EXISTS copilot_messages (
   content    TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- 5. Profiles (account setup: role choice + optional info; links Auth0 user to role when JWT has none)
+CREATE TABLE IF NOT EXISTS profiles (
+  id            UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  auth0_sub     TEXT NOT NULL UNIQUE,
+  role          TEXT NOT NULL CHECK (role IN ('organizer', 'vendor')),
+  display_name  TEXT,
+  org_name      TEXT,
+  business_name TEXT,
+  completed_at  TIMESTAMPTZ DEFAULT NOW(),
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_profiles_auth0_sub ON profiles(auth0_sub);

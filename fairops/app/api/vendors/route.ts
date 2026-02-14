@@ -16,14 +16,36 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const eventId = searchParams.get('eventId') ?? undefined;
-    if (!isValidUuid(eventId)) {
-      return NextResponse.json(
-        { error: 'Valid eventId (UUID) is required' },
-        { status: 400 }
-      );
+    const eventIdParam = searchParams.get('eventId') ?? undefined;
+
+    // Vendor "my applications": no eventId → return all applications for this vendor with event info
+    if (!eventIdParam || !isValidUuid(eventIdParam)) {
+      if (!auth.roles.includes('vendor')) {
+        return NextResponse.json(
+          { error: 'Valid eventId (UUID) is required' },
+          { status: 400 }
+        );
+      }
+      const { data: vendorRows, error: vendorError } = await supabaseAdmin
+        .from('vendors')
+        .select(`
+          *,
+          event:events(id, name, date, location)
+        `)
+        .eq('user_id', auth.user.sub)
+        .order('created_at', { ascending: false });
+
+      if (vendorError) {
+        console.error('GET /api/vendors (mine) error:', vendorError);
+        return NextResponse.json(
+          { error: vendorError.message },
+          { status: 500 }
+        );
+      }
+      return NextResponse.json({ vendors: vendorRows ?? [] });
     }
 
+    const eventId = eventIdParam;
     const eventCheck = await supabaseAdmin
       .from('events')
       .select('id')
