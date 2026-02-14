@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowUp, Paintbrush, Settings, FlaskConical, Waves, User, Store } from 'lucide-react';
+import { ArrowUp, Paintbrush, Settings, Plus, FlaskConical, Waves, User, Store } from 'lucide-react';
 import Link from 'next/link';
 
 const COUNTER_ITEMS = [
@@ -54,6 +54,16 @@ export function Sidebar() {
             <Paintbrush className="h-4 w-4" />
           </Link>
         </div>
+      </div>
+
+      <div className="border-b border-zinc-700 p-3">
+        <Link
+          href="/dashboard/new"
+          className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
+        >
+          <Plus className="h-4 w-4 shrink-0" />
+          <span>New event</span>
+        </Link>
       </div>
 
       <div className="flex-1 space-y-1 border-b border-zinc-700 p-3">
