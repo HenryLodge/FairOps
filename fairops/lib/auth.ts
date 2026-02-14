@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
  * Namespace used for custom claims added via Auth0 Post Login Action.
  * Must match the namespace configured in your Auth0 Action.
  */
-const CLAIMS_NAMESPACE = "localhost:3000";
+const CLAIMS_NAMESPACE = "https://localhost:3000";
 
 export type AppRole = "organizer" | "vendor";
 
@@ -43,7 +43,9 @@ export async function verifyAuth(
 
   const user = session.user;
   const roles: AppRole[] =
-    (user[`${CLAIMS_NAMESPACE}/roles`] as AppRole[] | undefined) ?? [];
+    (user[`${CLAIMS_NAMESPACE}/roles`] as AppRole[] | undefined) ??
+    (user['localhost:3000/roles'] as AppRole[] | undefined) ??
+    [];
 
   return { user: user as AuthResult["user"], roles };
 }
@@ -73,4 +75,32 @@ export async function requireRole(
   }
 
   return auth;
+}
+
+/**
+ * Get session for API route handlers. Does not redirect; returns null when unauthenticated.
+ * Use this in API routes and return 401/403 JSON as needed.
+ */
+export async function getSessionForApi(): Promise<
+  | { auth: { user: { sub: string; [key: string]: unknown }; roles: string[] } }
+  | { auth: null }
+> {
+  const session = await auth0.getSession();
+
+  if (!session || !session.user) {
+    return { auth: null };
+  }
+
+  const user = session.user;
+  const roles: string[] =
+    (user[`${CLAIMS_NAMESPACE}/roles`] as string[] | undefined) ??
+    (user['localhost:3000/roles'] as string[] | undefined) ??
+    [];
+
+  return {
+    auth: {
+      user: user as { sub: string; [key: string]: unknown },
+      roles,
+    },
+  };
 }

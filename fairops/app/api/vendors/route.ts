@@ -1,12 +1,20 @@
+import { getSessionForApi } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { isValidUuid } from '@/lib/uuid';
 import { NextResponse } from 'next/server';
 
 const VENDOR_TYPES = ['food', 'game', 'merch', 'ride'] as const;
-const STUB_USER_ID: string | null = null;
 
 export async function GET(request: Request) {
   try {
+    const { auth } = await getSessionForApi();
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const eventId = searchParams.get('eventId') ?? undefined;
     if (!isValidUuid(eventId)) {
@@ -42,7 +50,12 @@ export async function GET(request: Request) {
       );
     }
 
-    return NextResponse.json({ vendors: data ?? [] });
+    const raw = data ?? [];
+    const vendors =
+      auth.roles.includes('organizer')
+        ? raw
+        : raw.filter((v: { user_id?: string | null }) => v.user_id === auth.user.sub);
+    return NextResponse.json({ vendors });
   } catch (err) {
     console.error('GET /api/vendors error:', err);
     return NextResponse.json(
@@ -56,6 +69,21 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const { auth } = await getSessionForApi();
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+    if (!auth.roles.includes('vendor')) {
+      return NextResponse.json(
+        { error: 'Vendor role required' },
+        { status: 403 }
+      );
+    }
+    const userId = auth.user.sub;
+
     const body = await request.json().catch(() => ({}));
     if (typeof body !== 'object' || body === null) {
       return NextResponse.json(
@@ -115,7 +143,7 @@ export async function POST(request: Request) {
       .from('vendors')
       .insert({
         event_id: eventId,
-        user_id: STUB_USER_ID,
+        user_id: userId,
         booth_name: boothName.trim(),
         vendor_type: vendorType,
         description,

@@ -1,8 +1,9 @@
 import { auth0 } from "@/lib/auth0";
 import { redirect } from "next/navigation";
 import LoginButton from "@/components/LoginButton";
+import LogoutButton from "@/components/LogoutButton";
 
-const CLAIMS_NAMESPACE = "localhost:3000";
+const CLAIMS_NAMESPACE = "https://localhost:3000";
 
 export default async function Home() {
   const session = await auth0.getSession();
@@ -21,19 +22,40 @@ export default async function Home() {
       redirect("/vendor");
     }
 
-    // Authenticated but no recognized role — redirect to dashboard as default
-    redirect("/dashboard");
+    // Authenticated but no recognized role — show message (do not redirect to /dashboard or we get a redirect loop)
+    return (
+      <div className="app-container">
+        <div className="main-card-wrapper">
+          <h1 className="main-title">FairOps</h1>
+          <div className="action-card">
+            <p className="action-text">
+              You don&apos;t have an assigned role yet. Contact the organizer to get access as a vendor or organizer.
+            </p>
+            <LogoutButton />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Not authenticated — show login page
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-zinc-950">
-      <main className="flex flex-col items-center gap-6 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Lot Boss
-        </h1>
-        <LoginButton />
-      </main>
+    <div className="app-container">
+      <div className="main-card-wrapper">
+        <img
+          src="https://cdn.auth0.com/quantum-assets/dist/latest/logos/auth0/auth0-lockup-en-ondark.png"
+          alt="Auth0 Logo"
+          className="auth0-logo"
+        />
+        <h1 className="main-title">FairOps</h1>
+
+        <div className="action-card">
+          <p className="action-text">
+            Welcome! Please log in to access your dashboard.
+          </p>
+          <LoginButton />
+        </div>
+      </div>
     </div>
   );
 }

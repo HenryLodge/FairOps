@@ -1,3 +1,4 @@
+import { getSessionForApi } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 
@@ -116,6 +117,20 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { auth } = await getSessionForApi();
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+    if (!auth.roles.includes('organizer')) {
+      return NextResponse.json(
+        { error: 'Organizer role required' },
+        { status: 403 }
+      );
+    }
+
     const { id } = await context.params;
     if (!isValidUuid(id)) {
       return NextResponse.json(
@@ -134,7 +149,7 @@ export async function PUT(
 
     const { data: existing } = await supabaseAdmin
       .from('events')
-      .select('id')
+      .select('id, organizer_id')
       .eq('id', id)
       .single();
 
@@ -142,6 +157,12 @@ export async function PUT(
       return NextResponse.json(
         { error: 'Event not found' },
         { status: 404 }
+      );
+    }
+    if (existing.organizer_id !== auth.user.sub) {
+      return NextResponse.json(
+        { error: 'Not authorized to update this event' },
+        { status: 403 }
       );
     }
 

@@ -1,7 +1,6 @@
+import { getSessionForApi } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
-
-const STUB_ORGANIZER_ID = 'demo-organizer';
 
 /**
  * List events from Supabase.
@@ -34,11 +33,25 @@ export async function GET() {
 }
 
 /**
- * Create a new event. Requires name, date, location.
- * organizer_id is stubbed until Auth0 is ready.
+ * Create a new event. Requires name, date, location. Requires organizer role.
  */
 export async function POST(request: Request) {
   try {
+    const { auth } = await getSessionForApi();
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+    if (!auth.roles.includes('organizer')) {
+      return NextResponse.json(
+        { error: 'Organizer role required' },
+        { status: 403 }
+      );
+    }
+    const organizerId = auth.user.sub;
+
     const body = await request.json().catch(() => ({}));
     if (typeof body !== 'object' || body === null) {
       return NextResponse.json(
@@ -96,7 +109,7 @@ export async function POST(request: Request) {
     const { data, error } = await supabaseAdmin
       .from('events')
       .insert({
-        organizer_id: STUB_ORGANIZER_ID,
+        organizer_id: organizerId,
         name: name.trim(),
         date: date.trim().slice(0, 10),
         location: location.trim(),

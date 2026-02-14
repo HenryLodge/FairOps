@@ -1,3 +1,4 @@
+import { getSessionForApi } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { isValidUuid } from '@/lib/uuid';
 import { NextResponse } from 'next/server';
@@ -7,6 +8,20 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { auth } = await getSessionForApi();
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+    if (!auth.roles.includes('organizer')) {
+      return NextResponse.json(
+        { error: 'Organizer role required' },
+        { status: 403 }
+      );
+    }
+
     const { id } = await context.params;
     if (!isValidUuid(id)) {
       return NextResponse.json(
