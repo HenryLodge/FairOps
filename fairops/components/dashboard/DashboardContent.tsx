@@ -2,6 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import type { GridBounds } from './GridOverlay';
+
+const VenueMap = dynamic(() => import('./VenueMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-[400px] items-center justify-center rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300" />
+    </div>
+  ),
+});
 
 type VendorRow = {
   id: string;
@@ -23,6 +34,9 @@ type EventData = {
     venue_width: number | null;
     venue_height: number | null;
     description: string | null;
+    venue_lat: number | null;
+    venue_lng: number | null;
+    venue_bounds: GridBounds | null;
   };
   vendors: VendorRow[];
   layout: unknown;
@@ -174,6 +188,31 @@ export function DashboardContent() {
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to reject vendor');
       }
+    },
+    [selectedEventId, loadDetail]
+  );
+
+  const handleSaveGrid = useCallback(
+    async (data: {
+      venue_width: number;
+      venue_height: number;
+      venue_lat: number;
+      venue_lng: number;
+      venue_bounds: GridBounds;
+    }) => {
+      if (!selectedEventId) return;
+      const res = await fetch(`/api/events/${selectedEventId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(
+          (body as { error?: string }).error ?? 'Failed to save grid'
+        );
+      }
+      await loadDetail(selectedEventId);
     },
     [selectedEventId, loadDetail]
   );
@@ -383,37 +422,24 @@ export function DashboardContent() {
             )}
           </section>
 
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1" />
-            <div className="dashboard-ai-area shrink-0 rounded-lg border border-zinc-200 bg-white/80 p-3 backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/80">
-              <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                AI reasoning & safety notes
-              </p>
-              <p className="mt-1 text-xs text-zinc-500">AI output will appear here.</p>
-            </div>
-          </div>
-
-          <div className="dashboard-map green-glass flex flex-1 flex-col items-center justify-center rounded-xl border border-emerald-200/50 bg-emerald-500/10 p-6 backdrop-blur-sm dark:border-emerald-800/50 dark:bg-emerald-950/30">
-            <h2 className="text-lg font-medium text-emerald-900 dark:text-emerald-100">
-              Map layout
-            </h2>
-            <p className="mt-1 text-sm text-emerald-700/80 dark:text-emerald-300/80">
-              Venue layout
-            </p>
-            <div
-              className="mt-6 grid gap-1"
-              style={{
-                gridTemplateColumns: 'repeat(4, 3rem)',
-                gridTemplateRows: 'repeat(3, 3rem)',
-              }}
-            >
-              {Array.from({ length: 12 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded border border-emerald-300/50 bg-white/20 dark:border-emerald-700/50 dark:bg-white/5"
-                />
-              ))}
-            </div>
+          {/* Venue Map with Grid Editor */}
+          <div className="flex-1 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700" style={{ minHeight: 400 }}>
+            {event && (
+              <VenueMap
+                event={{
+                  id: event.id,
+                  location: event.location,
+                  venue_width: event.venue_width,
+                  venue_height: event.venue_height,
+                  venue_lat: event.venue_lat,
+                  venue_lng: event.venue_lng,
+                  venue_bounds: event.venue_bounds,
+                }}
+                venueWidth={event.venue_width ?? 8}
+                venueHeight={event.venue_height ?? 6}
+                onSave={handleSaveGrid}
+              />
+            )}
           </div>
         </>
       ) : null}

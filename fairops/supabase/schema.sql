@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS events (
   venue_height        INTEGER,
   description         TEXT,
   organizer_wallet    TEXT,
+  venue_lat           DOUBLE PRECISION,
+  venue_lng           DOUBLE PRECISION,
+  venue_bounds        JSONB,
   created_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
