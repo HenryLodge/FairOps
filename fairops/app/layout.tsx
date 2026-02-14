@@ -16,7 +16,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "FairOps — Operations platform for fairs and events",
+  title: "FairOps",
   description:
     "The modern way to manage vendor operations, booth assignments, and event logistics for fairs and carnivals.",
 };
