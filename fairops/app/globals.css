@@ -1,42 +1,5 @@
 @import "tailwindcss";
 
-:root {
-  --color-bg: #0A0F1E;
-  --color-bg-elevated: #111827;
-  --color-bg-subtle: #1F2937;
-  --color-surface: #0D1321;
-  --color-accent: #F59E0B;
-  --color-accent-soft: rgba(245, 158, 11, 0.15);
-  --color-accent-glow: rgba(245, 158, 11, 0.4);
-  --color-light: #F8F7F4;
-  --color-text: #F8F7F4;
-  --color-text-secondary: #6B7280;
-  --color-text-tertiary: #4B5563;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-subtle: rgba(255, 255, 255, 0.04);
-  
-  --font-heading: var(--font-heading), 'Space Grotesk', system-ui, sans-serif;
-  --font-body: var(--font-body), 'Inter', system-ui, sans-serif;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  margin: 0;
-  font-family: var(--font-body);
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
 /* ===== LANDING PAGE ===== */
 .landing {
   min-height: 100vh;
@@ -782,4 +745,41 @@ body {
   .landing-card {
     padding: 2rem;
   }
+}
+
+:root {
+  --color-bg: #0A0F1E;
+  --color-bg-elevated: #111827;
+  --color-bg-subtle: #1F2937;
+  --color-surface: #0D1321;
+  --color-accent: #F59E0B;
+  --color-accent-soft: rgba(245, 158, 11, 0.15);
+  --color-accent-glow: rgba(245, 158, 11, 0.4);
+  --color-light: #F8F7F4;
+  --color-text: #F8F7F4;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary: #4B5563;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-subtle: rgba(255, 255, 255, 0.04);
+  
+  --font-heading: var(--font-heading), 'Space Grotesk', system-ui, sans-serif;
+  --font-body: var(--font-body), 'Inter', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
