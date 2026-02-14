@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ArrowUp, Paintbrush, Settings, Plus, FlaskConical, Waves, User, Store } from 'lucide-react';
 import Link from 'next/link';
+import { useDashboardStats, formatRevenue } from './DashboardStatsContext';
 
 const COUNTER_ITEMS = [
   { id: 'tools', label: 'Tools', icon: FlaskConical },
@@ -12,6 +13,7 @@ const COUNTER_ITEMS = [
 ] as const;
 
 export function Sidebar() {
+  const { stats } = useDashboardStats();
   const [counts, setCounts] = useState<Record<string, number>>({
     tools: 0,
     waves: 0,
@@ -24,15 +26,19 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="dashboard-sidebar flex h-full w-56 flex-col bg-zinc-900 text-zinc-200">
-      <div className="border-b border-zinc-700 p-3">
+    <aside
+      className="dashboard-sidebar flex h-full w-56 flex-col"
+      style={{ background: 'var(--color-surface)', color: 'var(--color-text-secondary)' }}
+    >
+      <div className="border-b p-3" style={{ borderColor: 'var(--color-border)' }}>
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+          <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-tertiary)' }}>
             drag & drop
           </p>
           <Link
             href="/settings"
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-zinc-800 hover:bg-zinc-700"
+            className="flex h-9 w-9 items-center justify-center rounded-md hover:opacity-80"
+            style={{ background: 'var(--color-bg-elevated)' }}
             aria-label="Settings"
           >
             <Settings className="h-4 w-4" />
@@ -41,14 +47,16 @@ export function Sidebar() {
         <div className="flex gap-2">
           <Link
             href="#"
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-zinc-800 hover:bg-zinc-700"
+            className="flex h-9 w-9 items-center justify-center rounded-md hover:opacity-80"
+            style={{ background: 'var(--color-bg-elevated)' }}
             aria-label="Layout"
           >
             <ArrowUp className="h-4 w-4" />
           </Link>
           <Link
             href="#"
-            className="flex h-9 w-9 items-center justify-center rounded-md bg-zinc-800 hover:bg-zinc-700"
+            className="flex h-9 w-9 items-center justify-center rounded-md hover:opacity-80"
+            style={{ background: 'var(--color-bg-elevated)' }}
             aria-label="Edit"
           >
             <Paintbrush className="h-4 w-4" />
@@ -56,29 +64,32 @@ export function Sidebar() {
         </div>
       </div>
 
-      <div className="border-b border-zinc-700 p-3">
+      <div className="border-b p-3" style={{ borderColor: 'var(--color-border)' }}>
         <Link
           href="/dashboard/new"
-          className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
+          className="flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:opacity-90"
+          style={{ color: 'var(--color-text)' }}
         >
           <Plus className="h-4 w-4 shrink-0" />
           <span>New event</span>
         </Link>
       </div>
 
-      <div className="flex-1 space-y-1 border-b border-zinc-700 p-3">
+      <div className="flex-1 space-y-1 border-b p-3" style={{ borderColor: 'var(--color-border)' }}>
         {COUNTER_ITEMS.map(({ id, label, icon: Icon }) => (
           <div
             key={id}
-            className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-zinc-800"
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:opacity-90"
+            style={{ color: 'var(--color-text)' }}
           >
-            <Icon className="h-4 w-4 shrink-0 text-zinc-400" />
+            <Icon className="h-4 w-4 shrink-0" style={{ color: 'var(--color-text-tertiary)' }} />
             <span className="min-w-0 flex-1 truncate text-sm">{label}</span>
             <div className="flex items-center gap-0.5">
               <button
                 type="button"
                 onClick={() => adjust(id, -1)}
-                className="flex h-6 w-6 items-center justify-center rounded text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+                className="flex h-6 w-6 items-center justify-center rounded hover:opacity-80"
+                style={{ color: 'var(--color-text-tertiary)' }}
                 aria-label={`Decrease ${label}`}
               >
                 −
@@ -89,7 +100,8 @@ export function Sidebar() {
               <button
                 type="button"
                 onClick={() => adjust(id, 1)}
-                className="flex h-6 w-6 items-center justify-center rounded text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+                className="flex h-6 w-6 items-center justify-center rounded hover:opacity-80"
+                style={{ color: 'var(--color-text-tertiary)' }}
                 aria-label={`Increase ${label}`}
               >
                 +
@@ -99,11 +111,53 @@ export function Sidebar() {
         ))}
       </div>
 
+      {stats && (
+        <div className="border-b p-3" style={{ borderColor: 'var(--color-border)' }}>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded border p-2" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-elevated)' }}>
+              <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-tertiary)' }}>
+                Vendors
+              </p>
+              <p className="mt-0.5 truncate text-xs font-semibold" style={{ color: 'var(--color-text)' }}>
+                {stats.approved} / {stats.pending}
+              </p>
+              <p className="text-[10px]" style={{ color: 'var(--color-text-tertiary)' }}>{stats.totalVendors} total</p>
+            </div>
+            <div className="rounded border p-2" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-elevated)' }}>
+              <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-tertiary)' }}>
+                Revenue
+              </p>
+              <p className="mt-0.5 truncate text-xs font-semibold" style={{ color: 'var(--color-text)' }}>
+                {formatRevenue(stats.totalRevenue)}
+              </p>
+              <p className="text-[10px]" style={{ color: 'var(--color-text-tertiary)' }}>{stats.paid} paid</p>
+            </div>
+            <div className="rounded border p-2" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-elevated)' }}>
+              <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-tertiary)' }}>
+                Layout
+              </p>
+              <p className="mt-0.5 truncate text-xs font-semibold" style={{ color: 'var(--color-text)' }}>
+                {stats.layoutStatus === 'generated' ? 'Generated' : 'Not generated'}
+              </p>
+            </div>
+            <div className="rounded border p-2" style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-elevated)' }}>
+              <p className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-tertiary)' }}>
+                Safety
+              </p>
+              <p className="mt-0.5 truncate text-xs font-semibold" style={{ color: 'var(--color-text)' }}>
+                {stats.safetyFlagsCount === 0 ? 'No flags' : `${stats.safetyFlagsCount} flag${stats.safetyFlagsCount === 1 ? '' : 's'}`}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="p-3">
         <button
           type="button"
           onClick={() => console.log('AI Button clicked')}
-          className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-500"
+          className="w-full rounded-lg px-4 py-2.5 text-sm font-medium hover:opacity-90"
+          style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
         >
           Optimize with AI
         </button>

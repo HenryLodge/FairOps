@@ -28,7 +28,7 @@ export default async function SetupPage() {
     <div className="app-container">
       <div className="main-card-wrapper">
         <h1 className="main-title">Account setup</h1>
-        <p className="text-center text-zinc-400">
+        <p className="action-text" style={{ marginTop: 0 }}>
           Choose your role and add a few details to get started.
         </p>
         <SetupForm />

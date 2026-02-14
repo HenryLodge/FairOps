@@ -188,19 +188,22 @@ function MapSearchBar({
   return (
     <form
       onSubmit={handleSearch}
-      className="absolute left-12 top-2.5 z-[1000] flex w-72 overflow-hidden rounded-lg border border-zinc-300 bg-white shadow-md dark:border-zinc-600 dark:bg-zinc-800"
+      className="absolute left-12 top-2.5 z-[1000] flex w-72 overflow-hidden rounded-lg border shadow-md"
+      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
     >
       <input
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search location..."
-        className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-zinc-100 dark:placeholder:text-zinc-500"
+        className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm placeholder-[var(--color-text-tertiary)] focus:outline-none"
+        style={{ color: 'var(--color-text)' }}
       />
       <button
         type="submit"
         disabled={searching}
-        className="flex w-9 shrink-0 items-center justify-center border-l border-zinc-300 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700 disabled:opacity-50 dark:border-zinc-600 dark:hover:bg-zinc-700 dark:hover:text-zinc-300"
+        className="flex w-9 shrink-0 items-center justify-center border-l disabled:opacity-50 hover:opacity-80"
+        style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
         aria-label="Search"
       >
         {searching ? (
@@ -359,8 +362,11 @@ export default function VenueMap({
   /* ------ Loading state ------ */
   if (geocoding || !center) {
     return (
-      <div className="flex h-full min-h-[400px] items-center justify-center bg-zinc-100 dark:bg-zinc-900">
-        <div className="flex items-center gap-2 text-sm text-zinc-500">
+      <div
+        className="flex h-full min-h-[400px] items-center justify-center"
+        style={{ background: 'var(--color-surface)' }}
+      >
+        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Locating venue...</span>
         </div>
@@ -451,22 +457,22 @@ export default function VenueMap({
       </div>
 
       {/* Toolbar */}
-      <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-3 border-t border-zinc-200 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+      <div
+        className="absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-3 border-t px-3 py-2"
+        style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+      >
         {/* Grid toggle */}
         <div className="relative">
           <button
             type="button"
             onClick={() => {
               if (showGrid) {
-                /* Toggling OFF — just hide */
                 setShowGrid(false);
                 return;
               }
-              /* Toggling ON — compute bounds from tracked drawn layers */
               const layers = Array.from(drawnLayersRef.current.values());
               const computed = boundsFromLayers(layers);
               if (!computed) {
-                /* No shapes drawn yet — flash a hint */
                 setNoShapesHint(true);
                 setTimeout(() => setNoShapesHint(false), 2500);
                 return;
@@ -475,11 +481,12 @@ export default function VenueMap({
               setShowGrid(true);
               setSaved(false);
             }}
-            className={`flex h-7 items-center gap-1 rounded px-2 text-xs font-medium ${
+            className="flex h-7 items-center gap-1 rounded px-2 text-xs font-medium"
+            style={
               showGrid
-                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
-            }`}
+                ? { background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }
+                : { background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)' }
+            }
             aria-label={showGrid ? 'Hide grid' : 'Show grid'}
           >
             {showGrid ? (
@@ -490,7 +497,10 @@ export default function VenueMap({
             <Grid3x3 className="h-3 w-3" />
           </button>
           {noShapesHint && (
-            <span className="absolute -top-8 left-0 whitespace-nowrap rounded bg-zinc-800 px-2 py-1 text-[11px] text-white shadow dark:bg-zinc-200 dark:text-zinc-900">
+            <span
+              className="absolute -top-8 left-0 whitespace-nowrap rounded px-2 py-1 text-[11px] shadow"
+              style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text)' }}
+            >
               Draw a shape first
             </span>
           )}
@@ -498,26 +508,28 @@ export default function VenueMap({
 
         {/* Columns control */}
         <div className="flex items-center gap-1">
-          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+          <span className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
             Cols
           </span>
           <button
             type="button"
             onClick={() => adjustCols(-1)}
             disabled={cols <= MIN_DIM}
-            className="flex h-7 w-7 items-center justify-center rounded bg-zinc-100 text-zinc-600 hover:bg-zinc-200 disabled:opacity-40 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            className="flex h-7 w-7 items-center justify-center rounded hover:opacity-80 disabled:opacity-40"
+            style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)' }}
             aria-label="Remove column"
           >
             <Minus className="h-3 w-3" />
           </button>
-          <span className="min-w-[1.5rem] text-center text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+          <span className="min-w-[1.5rem] text-center text-sm font-semibold tabular-nums" style={{ color: 'var(--color-text)' }}>
             {cols}
           </span>
           <button
             type="button"
             onClick={() => adjustCols(1)}
             disabled={cols >= MAX_DIM}
-            className="flex h-7 w-7 items-center justify-center rounded bg-zinc-100 text-zinc-600 hover:bg-zinc-200 disabled:opacity-40 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            className="flex h-7 w-7 items-center justify-center rounded hover:opacity-80 disabled:opacity-40"
+            style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)' }}
             aria-label="Add column"
           >
             <Plus className="h-3 w-3" />
@@ -526,26 +538,28 @@ export default function VenueMap({
 
         {/* Rows control */}
         <div className="flex items-center gap-1">
-          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+          <span className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
             Rows
           </span>
           <button
             type="button"
             onClick={() => adjustRows(-1)}
             disabled={rows <= MIN_DIM}
-            className="flex h-7 w-7 items-center justify-center rounded bg-zinc-100 text-zinc-600 hover:bg-zinc-200 disabled:opacity-40 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            className="flex h-7 w-7 items-center justify-center rounded hover:opacity-80 disabled:opacity-40"
+            style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)' }}
             aria-label="Remove row"
           >
             <Minus className="h-3 w-3" />
           </button>
-          <span className="min-w-[1.5rem] text-center text-sm font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+          <span className="min-w-[1.5rem] text-center text-sm font-semibold tabular-nums" style={{ color: 'var(--color-text)' }}>
             {rows}
           </span>
           <button
             type="button"
             onClick={() => adjustRows(1)}
             disabled={rows >= MAX_DIM}
-            className="flex h-7 w-7 items-center justify-center rounded bg-zinc-100 text-zinc-600 hover:bg-zinc-200 disabled:opacity-40 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            className="flex h-7 w-7 items-center justify-center rounded hover:opacity-80 disabled:opacity-40"
+            style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)' }}
             aria-label="Add row"
           >
             <Plus className="h-3 w-3" />
@@ -555,7 +569,7 @@ export default function VenueMap({
         <div className="flex-1" />
 
         {/* Grid size display */}
-        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+        <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
           {cols} &times; {rows} grid
         </span>
 
@@ -564,7 +578,8 @@ export default function VenueMap({
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium hover:opacity-90 disabled:opacity-50"
+          style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
         >
           {saving ? (
             <Loader2 className="h-3 w-3 animate-spin" />

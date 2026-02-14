@@ -4,12 +4,19 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import type { GridBounds } from './GridOverlay';
+import { useDashboardStats } from './DashboardStatsContext';
 
 const VenueMap = dynamic(() => import('./VenueMap'), {
   ssr: false,
   loading: () => (
-    <div className="flex min-h-[400px] items-center justify-center rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300" />
+    <div
+      className="flex min-h-[400px] items-center justify-center rounded-xl border"
+      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+    >
+      <div
+        className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
+        style={{ borderColor: 'var(--color-border)', borderTopColor: 'var(--color-accent)' }}
+      />
     </div>
   ),
 });
@@ -52,8 +59,6 @@ type EventData = {
   };
 };
 
-const LAMPORTS_PER_SOL = 1_000_000_000;
-
 function formatDate(dateStr: string): string {
   try {
     return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, {
@@ -67,14 +72,10 @@ function formatDate(dateStr: string): string {
   }
 }
 
-function formatRevenue(lamports: number): string {
-  const sol = lamports / LAMPORTS_PER_SOL;
-  return `${sol.toFixed(2)} SOL`;
-}
-
 type EventListItem = { id: string; name: string; date: string };
 
 export function DashboardContent() {
+  const { setStats } = useDashboardStats();
   const [eventsList, setEventsList] = useState<EventListItem[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [eventData, setEventData] = useState<EventData | null>(null);
@@ -82,6 +83,11 @@ export function DashboardContent() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [empty, setEmpty] = useState(false);
+
+  useEffect(() => {
+    setStats(eventData?.stats ?? null);
+    return () => setStats(null);
+  }, [eventData?.stats, setStats]);
 
   const loadDetail = useCallback(async (eventId: string) => {
     setDetailLoading(true);
@@ -224,17 +230,24 @@ export function DashboardContent() {
   if (loading) {
     return (
       <div className="flex h-full flex-col gap-4 p-4">
-        <div className="h-8 w-64 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+        <div
+          className="h-8 w-64 animate-pulse rounded"
+          style={{ background: 'var(--color-bg-elevated)' }}
+        />
         <div className="grid grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="h-20 animate-pulse rounded-lg bg-zinc-200 dark:bg-zinc-700"
+              className="h-20 animate-pulse rounded-lg"
+              style={{ background: 'var(--color-bg-elevated)' }}
             />
           ))}
         </div>
         <div className="flex flex-1 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300" />
+          <div
+            className="h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
+            style={{ borderColor: 'var(--color-border)', borderTopColor: 'var(--color-accent)' }}
+          />
         </div>
       </div>
     );
@@ -243,11 +256,12 @@ export function DashboardContent() {
   if (error) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 p-4">
-        <p className="text-center text-zinc-600 dark:text-zinc-400">{error}</p>
+        <p className="text-center" style={{ color: 'var(--color-text-secondary)' }}>{error}</p>
         <button
           type="button"
           onClick={load}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="rounded-lg px-4 py-2 text-sm font-medium hover:opacity-90"
+          style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
         >
           Retry
         </button>
@@ -258,12 +272,13 @@ export function DashboardContent() {
   if (empty) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 p-4">
-        <p className="text-center text-zinc-600 dark:text-zinc-400">
+        <p className="text-center" style={{ color: 'var(--color-text-secondary)' }}>
           No event yet.
         </p>
         <Link
           href="/dashboard/new"
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="rounded-lg px-4 py-2 text-sm font-medium hover:opacity-90"
+          style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
         >
           Create event
         </Link>
@@ -276,7 +291,6 @@ export function DashboardContent() {
   }
 
   const event = eventData?.event;
-  const stats = eventData?.stats;
 
   return (
     <div className="flex h-full flex-col gap-4 p-4">
@@ -285,7 +299,12 @@ export function DashboardContent() {
           <select
             value={selectedEventId ?? ''}
             onChange={handleEventChange}
-            className="w-full max-w-md rounded-md border border-zinc-300 bg-white px-3 py-2 text-lg font-semibold text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-500 dark:focus:ring-zinc-500"
+            className="w-full max-w-md rounded-lg border px-3 py-2 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)]"
+            style={{
+              borderColor: 'var(--color-border)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-text)',
+            }}
             aria-label="Select event"
           >
             {eventsList.map((e) => (
@@ -295,7 +314,7 @@ export function DashboardContent() {
             ))}
           </select>
           {event && (
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="mt-1 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
               {formatDate(event.date)}
               {event.location ? ` · ${event.location}` : ''}
               {event.expected_attendance != null
@@ -306,7 +325,12 @@ export function DashboardContent() {
         </div>
         <Link
           href="/dashboard/new"
-          className="shrink-0 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+          className="shrink-0 rounded-lg border px-4 py-2 text-sm font-medium hover:opacity-90"
+          style={{
+            borderColor: 'var(--color-border)',
+            background: 'var(--color-surface)',
+            color: 'var(--color-text-secondary)',
+          }}
         >
           New event
         </Link>
@@ -314,116 +338,18 @@ export function DashboardContent() {
 
       {detailLoading && !eventData ? (
         <div className="flex flex-1 items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300" />
+          <div
+            className="h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
+            style={{ borderColor: 'var(--color-border)', borderTopColor: 'var(--color-accent)' }}
+          />
         </div>
-      ) : eventData && stats ? (
+      ) : eventData ? (
         <>
-          <div className="grid grid-cols-4 gap-3">
-            <div className="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
-              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                Vendors
-              </p>
-              <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                {stats.approved} approved / {stats.pending} pending
-              </p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                {stats.totalVendors} total
-              </p>
-            </div>
-            <div className="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
-              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                Revenue
-              </p>
-              <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                {formatRevenue(stats.totalRevenue)}
-              </p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                {stats.paid} paid
-              </p>
-            </div>
-            <div className="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
-              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                Layout
-              </p>
-              <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                {stats.layoutStatus === 'generated' ? 'Generated' : 'Not generated'}
-              </p>
-            </div>
-            <div className="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800">
-              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                Safety
-              </p>
-              <p className="mt-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                {stats.safetyFlagsCount === 0
-                  ? 'No flags'
-                  : `${stats.safetyFlagsCount} flag${stats.safetyFlagsCount === 1 ? '' : 's'}`}
-              </p>
-            </div>
-          </div>
-
-          <section className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
-              Vendor applications
-            </h2>
-            {eventData.vendors.length === 0 ? (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                No applications yet.
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {eventData.vendors.map((v) => (
-                  <li
-                    key={v.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-zinc-100 py-2 pl-3 pr-2 dark:border-zinc-700"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                        {v.booth_name}
-                      </p>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {v.vendor_type}
-                        {v.description ? ` · ${v.description.slice(0, 60)}${v.description.length > 60 ? "…" : ""}` : ""}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                          v.status === 'approved'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
-                            : v.status === 'rejected'
-                              ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
-                              : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-                        }`}
-                      >
-                        {v.status}
-                      </span>
-                      {v.status === 'pending' && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleApprove(v.id)}
-                            className="rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-500"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleReject(v.id)}
-                            className="rounded bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-500"
-                          >
-                            Deny
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {/* Venue Map with Grid Editor */}
-          <div className="flex-1 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700" style={{ minHeight: 400 }}>
+          {/* Venue Map — takes main space */}
+          <div
+            className="min-h-0 flex-1 overflow-hidden rounded-xl border"
+            style={{ minHeight: 320, borderColor: 'var(--color-border)' }}
+          >
             {event && (
               <VenueMap
                 event={{
@@ -441,6 +367,75 @@ export function DashboardContent() {
               />
             )}
           </div>
+
+          {/* Vendor applications — under the map */}
+          <section
+            className="shrink-0 rounded-lg border p-4"
+            style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+          >
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-secondary)' }}>
+              Vendor applications
+            </h2>
+            {eventData.vendors.length === 0 ? (
+              <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                No applications yet.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {eventData.vendors.map((v) => (
+                  <li
+                    key={v.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border py-2 pl-3 pr-2"
+                    style={{ borderColor: 'var(--color-border)' }}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium" style={{ color: 'var(--color-text)' }}>
+                        {v.booth_name}
+                      </p>
+                      <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                        {v.vendor_type}
+                        {v.description ? ` · ${v.description.slice(0, 60)}${v.description.length > 60 ? "…" : ""}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                        style={
+                          v.status === 'approved'
+                            ? { background: 'rgba(16, 185, 129, 0.2)', color: '#34D399' }
+                            : v.status === 'rejected'
+                              ? { background: 'rgba(239, 68, 68, 0.2)', color: '#F87171' }
+                              : { background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }
+                        }
+                      >
+                        {v.status}
+                      </span>
+                      {v.status === 'pending' && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(v.id)}
+                            className="rounded px-2 py-1 text-xs font-medium hover:opacity-90"
+                            style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleReject(v.id)}
+                            className="rounded px-2 py-1 text-xs font-medium hover:opacity-90"
+                            style={{ background: 'rgba(239, 68, 68, 0.9)', color: '#fff' }}
+                          >
+                            Deny
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </>
       ) : null}
     </div>

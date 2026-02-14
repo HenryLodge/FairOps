@@ -43,17 +43,20 @@ export function RightPanel() {
   };
 
   return (
-    <aside className="dashboard-right-panel flex h-full w-96 flex-col border-l border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-      <header className="flex shrink-0 items-center gap-2 border-b border-zinc-200 px-4 py-3 dark:border-zinc-700">
-        <MessageSquare className="h-5 w-5 text-zinc-500" aria-hidden />
-        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+    <aside
+      className="dashboard-right-panel flex h-full w-96 flex-col border-l"
+      style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}
+    >
+      <header className="flex shrink-0 items-center gap-2 border-b px-4 py-3" style={{ borderColor: 'var(--color-border)' }}>
+        <MessageSquare className="h-5 w-5" style={{ color: 'var(--color-text-tertiary)' }} aria-hidden />
+        <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
           Copilot
         </h2>
       </header>
 
       <div className="copilot-messages flex min-h-0 flex-1 flex-col overflow-auto p-3">
         {messages.length === 0 ? (
-          <p className="text-center text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-center text-sm" style={{ color: 'var(--color-text-secondary)' }}>
             Ask me about vendors, layout, or operations.
           </p>
         ) : (
@@ -68,10 +71,11 @@ export function RightPanel() {
                 }
               >
                 <span
-                  className={
+                  className="rounded-lg px-3 py-2 text-sm"
+                  style={
                     msg.role === 'user'
-                      ? 'rounded-lg bg-emerald-100 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-900/50 dark:text-emerald-100'
-                      : 'rounded-lg bg-zinc-100 px-3 py-2 text-sm text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100'
+                      ? { background: 'var(--color-accent-soft)', color: 'var(--color-accent)' }
+                      : { background: 'var(--color-bg-elevated)', color: 'var(--color-text)' }
                   }
                 >
                   {msg.content}
@@ -82,14 +86,15 @@ export function RightPanel() {
         )}
       </div>
 
-      <div className="copilot-input shrink-0 border-t border-zinc-200 p-3 dark:border-zinc-700">
+      <div className="copilot-input shrink-0 border-t p-3" style={{ borderColor: 'var(--color-border)' }}>
         <div className="mb-2 flex flex-wrap gap-1.5">
           {QUICK_ACTIONS.map((label) => (
             <button
               key={label}
               type="button"
               onClick={() => handleQuickAction(label)}
-              className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+              className="rounded-full px-2.5 py-1 text-xs hover:opacity-90"
+              style={{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)' }}
             >
               {label}
             </button>
@@ -101,12 +106,18 @@ export function RightPanel() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about your event..."
-            className="min-w-0 flex-1 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:placeholder:text-zinc-500"
+            className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm placeholder-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)]"
+            style={{
+              borderColor: 'var(--color-border)',
+              background: 'var(--color-bg-elevated)',
+              color: 'var(--color-text)',
+            }}
             aria-label="Message"
           />
           <button
             type="submit"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white hover:bg-emerald-500"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg hover:opacity-90"
+            style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
             aria-label="Send"
           >
             <Send className="h-4 w-4" />

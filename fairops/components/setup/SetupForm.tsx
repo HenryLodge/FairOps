@@ -51,17 +51,35 @@ export function SetupForm() {
     }
   }
 
+  const inputClass =
+    'rounded-lg border px-3 py-2 text-sm bg-[var(--color-bg-elevated)] border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)]';
+
+  const labelClass = 'text-sm font-medium';
+  const labelStyle = { color: 'var(--color-text-secondary)' };
+
+  const roleCardBase = {
+    border: '2px solid var(--color-border)',
+    background: 'var(--color-bg-elevated)',
+  };
+  const roleCardSelected = {
+    borderColor: 'var(--color-accent)',
+    background: 'var(--color-accent-soft)',
+  };
+
   return (
     <form onSubmit={handleSubmit} className="flex w-full max-w-md flex-col gap-6">
       <div>
-        <p className="mb-3 text-sm font-medium text-zinc-300">I am a...</p>
+        <p className="mb-3 text-sm font-medium" style={labelStyle}>
+          I am a...
+        </p>
         <div className="flex gap-4">
           <label
-            className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 transition hover:border-emerald-500/50 hover:bg-zinc-800 ${
+            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3 transition hover:opacity-90"
+            style={
               role === 'organizer'
-                ? 'border-emerald-500 bg-emerald-500/20'
-                : 'border-zinc-600 bg-zinc-800/50'
-            }`}
+                ? { ...roleCardBase, ...roleCardSelected }
+                : roleCardBase
+            }
           >
             <input
               type="radio"
@@ -71,14 +89,17 @@ export function SetupForm() {
               onChange={() => setRole('organizer')}
               className="sr-only"
             />
-            <span className="font-medium">Organizer</span>
+            <span className="font-medium" style={{ color: 'var(--color-text)' }}>
+              Organizer
+            </span>
           </label>
           <label
-            className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 px-4 py-3 transition hover:border-emerald-500/50 hover:bg-zinc-800 ${
+            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3 transition hover:opacity-90"
+            style={
               role === 'vendor'
-                ? 'border-emerald-500 bg-emerald-500/20'
-                : 'border-zinc-600 bg-zinc-800/50'
-            }`}
+                ? { ...roleCardBase, ...roleCardSelected }
+                : roleCardBase
+            }
           >
             <input
               type="radio"
@@ -88,13 +109,15 @@ export function SetupForm() {
               onChange={() => setRole('vendor')}
               className="sr-only"
             />
-            <span className="font-medium">Vendor</span>
+            <span className="font-medium" style={{ color: 'var(--color-text)' }}>
+              Vendor
+            </span>
           </label>
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="displayName" className="text-sm font-medium text-zinc-300">
+        <label htmlFor="displayName" className={labelClass} style={labelStyle}>
           Display name (optional)
         </label>
         <input
@@ -103,13 +126,13 @@ export function SetupForm() {
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="How you want to be shown"
-          className="rounded-lg border border-zinc-600 bg-zinc-800 px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          className={inputClass}
         />
       </div>
 
       {role === 'organizer' && (
         <div className="flex flex-col gap-2">
-          <label htmlFor="orgName" className="text-sm font-medium text-zinc-300">
+          <label htmlFor="orgName" className={labelClass} style={labelStyle}>
             Organization name (optional)
           </label>
           <input
@@ -118,14 +141,14 @@ export function SetupForm() {
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
             placeholder="Your fair or company name"
-            className="rounded-lg border border-zinc-600 bg-zinc-800 px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className={inputClass}
           />
         </div>
       )}
 
       {role === 'vendor' && (
         <div className="flex flex-col gap-2">
-          <label htmlFor="businessName" className="text-sm font-medium text-zinc-300">
+          <label htmlFor="businessName" className={labelClass} style={labelStyle}>
             Business / booth name (optional)
           </label>
           <input
@@ -134,13 +157,16 @@ export function SetupForm() {
             value={businessName}
             onChange={(e) => setBusinessName(e.target.value)}
             placeholder="Your business or booth name"
-            className="rounded-lg border border-zinc-600 bg-zinc-800 px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className={inputClass}
           />
         </div>
       )}
 
       {error && (
-        <p className="rounded-lg bg-red-500/20 px-3 py-2 text-sm text-red-300">
+        <p
+          className="rounded-lg px-3 py-2 text-sm"
+          style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#F87171' }}
+        >
           {error}
         </p>
       )}
@@ -148,7 +174,8 @@ export function SetupForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-xl bg-emerald-600 px-4 py-3 font-medium text-white transition hover:bg-emerald-500 disabled:opacity-50"
+        className="rounded-xl px-4 py-3 font-medium transition hover:opacity-90 disabled:opacity-50"
+        style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
       >
         {submitting ? 'Saving...' : 'Complete setup'}
       </button>

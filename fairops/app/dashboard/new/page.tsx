@@ -63,28 +63,37 @@ export default function NewEventPage() {
     }
   }
 
+  const inputClass =
+    'w-full rounded-lg border px-3 py-2 text-sm bg-[var(--color-bg-elevated)] border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)]';
+  const labelClass = 'mb-1 block text-sm font-medium';
+  const labelStyle = { color: 'var(--color-text-secondary)' };
+
   return (
     <div className="flex h-full flex-col gap-6 p-4">
       <div className="flex items-center gap-4">
         <Link
           href="/dashboard"
-          className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          className="text-sm hover:opacity-90"
+          style={{ color: 'var(--color-text-secondary)' }}
         >
           Back to dashboard
         </Link>
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+        <h1 className="text-xl font-semibold" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-heading)' }}>
           Create event
         </h1>
       </div>
 
       <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4">
         {error && (
-          <p className="rounded-lg bg-red-50 p-2 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-200">
+          <p
+            className="rounded-lg p-2 text-sm"
+            style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#F87171' }}
+          >
             {error}
           </p>
         )}
         <div>
-          <label htmlFor="name" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label htmlFor="name" className={labelClass} style={labelStyle}>
             Name (required)
           </label>
           <input
@@ -93,11 +102,11 @@ export default function NewEventPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+            className={inputClass}
           />
         </div>
         <div>
-          <label htmlFor="date" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label htmlFor="date" className={labelClass} style={labelStyle}>
             Date (required)
           </label>
           <input
@@ -106,11 +115,11 @@ export default function NewEventPage() {
             value={date}
             onChange={(e) => setDate(e.target.value)}
             required
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+            className={inputClass}
           />
         </div>
         <div>
-          <label htmlFor="location" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label htmlFor="location" className={labelClass} style={labelStyle}>
             Location (required)
           </label>
           <input
@@ -119,11 +128,11 @@ export default function NewEventPage() {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             required
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+            className={inputClass}
           />
         </div>
         <div>
-          <label htmlFor="expectedAttendance" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label htmlFor="expectedAttendance" className={labelClass} style={labelStyle}>
             Expected attendance (optional)
           </label>
           <input
@@ -132,12 +141,12 @@ export default function NewEventPage() {
             min={1}
             value={expectedAttendance}
             onChange={(e) => setExpectedAttendance(e.target.value)}
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+            className={inputClass}
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="venueWidth" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label htmlFor="venueWidth" className={labelClass} style={labelStyle}>
               Venue width (grid units, optional)
             </label>
             <input
@@ -146,11 +155,11 @@ export default function NewEventPage() {
               min={1}
               value={venueWidth}
               onChange={(e) => setVenueWidth(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+              className={inputClass}
             />
           </div>
           <div>
-            <label htmlFor="venueHeight" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <label htmlFor="venueHeight" className={labelClass} style={labelStyle}>
               Venue height (grid units, optional)
             </label>
             <input
@@ -159,12 +168,12 @@ export default function NewEventPage() {
               min={1}
               value={venueHeight}
               onChange={(e) => setVenueHeight(e.target.value)}
-              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+              className={inputClass}
             />
           </div>
         </div>
         <div>
-          <label htmlFor="description" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <label htmlFor="description" className={labelClass} style={labelStyle}>
             Description (optional)
           </label>
           <textarea
@@ -172,20 +181,22 @@ export default function NewEventPage() {
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+            className={inputClass}
           />
         </div>
         <div className="flex gap-3">
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="rounded-lg px-4 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
+            style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
           >
             {submitting ? 'Creating…' : 'Create event'}
           </button>
           <Link
             href="/dashboard"
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            className="rounded-lg border px-4 py-2 text-sm font-medium hover:opacity-90"
+            style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
           >
             Cancel
           </Link>
