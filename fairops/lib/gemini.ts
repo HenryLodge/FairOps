@@ -46,6 +46,14 @@ export interface LayoutVendor {
 
 export type Attractions = Record<string, number>;
 
+/** Structured venue shape description produced by venueShapeDescription(). */
+export interface VenueShapeInfo {
+  /** Human-readable geometric description for the prompt. */
+  text: string;
+  /** Aspect ratio of the venue's primary shape (width × height). */
+  aspectRatio: { w: number; h: number };
+}
+
 /** Context passed to Event Assistant chat (system prompt). */
 export interface ChatEventContext {
   name: string;
@@ -101,7 +109,8 @@ export function buildLayoutPrompt(
   vendors: LayoutVendor[],
   metrics: VenueMetrics | null,
   attractions: Attractions | null,
-  venueShapeSummary?: string | null,
+  venueShape?: VenueShapeInfo | null,
+  hasReferenceImage = false,
 ): string {
   const lines: string[] = [];
 
@@ -128,10 +137,30 @@ export function buildLayoutPrompt(
       `- Real-world venue size: approximately ${Math.round(metrics.widthMeters)} m × ${Math.round(metrics.heightMeters)} m (${Math.round(metrics.areaM2).toLocaleString()} m²)`
     );
   }
-  if (venueShapeSummary) {
-    lines.push(`- Venue shape: ${venueShapeSummary}`);
-  }
   lines.push('');
+
+  /* ---- Venue shape (detailed geometric description) ---- */
+  if (venueShape) {
+    const { w, h } = venueShape.aspectRatio;
+    const arStr = w >= h
+      ? `${(w / (h || 1)).toFixed(1)}:1`
+      : `1:${(h / (w || 1)).toFixed(1)}`;
+    lines.push('## Venue Shape (CRITICAL — must match exactly)');
+    lines.push(`The venue boundary is: ${venueShape.text}`);
+    lines.push(`The generated image MUST match this exact shape and aspect ratio.`);
+    lines.push(`The image aspect ratio MUST be ${arStr} (width:height) to match the venue proportions.`);
+    lines.push('All vendors, attractions, and structures must be placed INSIDE the venue boundary.');
+    lines.push('Areas outside the venue boundary should be empty/unused.');
+    if (hasReferenceImage) {
+      lines.push('');
+      lines.push('A reference image of the venue boundary is attached.');
+      lines.push('You MUST use this image as the exact boundary template for your layout.');
+      lines.push('Place all vendors and attractions INSIDE the drawn boundary shape.');
+      lines.push('The output image MUST preserve the same shape outline and aspect ratio as the reference.');
+      lines.push('Do not change, simplify, or ignore the venue boundary shape.');
+    }
+    lines.push('');
+  }
 
   /* ---- Attractions / rides to place ---- */
   if (attractions && Object.keys(attractions).length > 0) {
@@ -169,6 +198,36 @@ export function buildLayoutPrompt(
     lines.push('');
   }
 
+  /* ---- Strict item count enforcement ---- */
+  {
+    const totalVendors = vendors.length;
+    const attractionEntries = attractions
+      ? Object.entries(attractions).filter(([, count]) => count > 0)
+      : [];
+    const totalAttractions = attractionEntries.reduce((sum, [, c]) => sum + c, 0);
+
+    if (totalVendors > 0 || totalAttractions > 0) {
+      lines.push('## Item Count Requirements (MANDATORY)');
+      lines.push('You MUST place EXACTLY the following number of each item — no more, no less:');
+      if (totalVendors > 0) {
+        lines.push(`- Vendors: ${totalVendors} total`);
+        vendors.forEach((v) => {
+          lines.push(`  - 1× "${v.booth_name}" (${v.vendor_type})`);
+        });
+      }
+      if (totalAttractions > 0) {
+        lines.push(`- Attractions: ${totalAttractions} total`);
+        attractionEntries.forEach(([key, count]) => {
+          const label = key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+          lines.push(`  - ${count}× ${label}`);
+        });
+      }
+      lines.push('Every single vendor and attraction listed above MUST appear exactly once in the layout.');
+      lines.push('Double-check your counts before finalizing.');
+      lines.push('');
+    }
+  }
+
   /* ---- Placement rules ---- */
   lines.push('## Layout Rules (MUST follow)');
   lines.push('1. Entrances are at the bottom-left and bottom-right corners.');
@@ -180,11 +239,38 @@ export function buildLayoutPrompt(
   lines.push('7. Large rides (roller coaster, ferris wheel) should be spaced apart and placed where they are visible from a distance to draw crowds.');
   lines.push('8. Info booths and photo booths should be near entrances or central walkways.');
   lines.push('9. Ensure adequate walking space between all structures.');
+  lines.push('10. CRITICAL: Place EXACTLY the number of vendors and attractions specified. Do not add extras or omit any.');
   lines.push('');
 
   /* ---- Output instructions ---- */
   lines.push('## What to Generate');
-  lines.push('1. **IMAGE**: Generate a clean, color-coded top-down 2D layout map of the venue. Use distinct colors:');
+
+  // Compute aspect ratio string for image quality instructions
+  let imageAspectStr: string | null = null;
+  if (venueShape) {
+    const { w, h } = venueShape.aspectRatio;
+    imageAspectStr = w >= h
+      ? `${(w / (h || 1)).toFixed(1)}:1`
+      : `1:${(h / (w || 1)).toFixed(1)}`;
+  } else if (metrics) {
+    const { widthMeters, heightMeters } = metrics;
+    imageAspectStr = widthMeters >= heightMeters
+      ? `${(widthMeters / (heightMeters || 1)).toFixed(1)}:1`
+      : `1:${(heightMeters / (widthMeters || 1)).toFixed(1)}`;
+  }
+
+  if (hasReferenceImage) {
+    lines.push('Use the attached venue boundary image as a template.');
+    lines.push('Draw the same boundary outline in the generated layout.');
+    lines.push('');
+  }
+  lines.push('1. **IMAGE**: Generate a HIGH RESOLUTION, crisp, professional-quality top-down 2D layout map of the venue.');
+  if (imageAspectStr) {
+    lines.push(`   The image MUST have an aspect ratio of ${imageAspectStr} (width:height) matching the venue shape.`);
+  }
+  lines.push('   Use clean vector-style graphics with sharp edges and readable text labels.');
+  lines.push('   Make the image at least 1024px on the longest side.');
+  lines.push('   Use distinct colors:');
   lines.push('   - Food vendors: warm yellow (#FEF3C7)');
   lines.push('   - Game vendors: light blue (#DBEAFE)');
   lines.push('   - Merch vendors: light indigo (#E0E7FF)');

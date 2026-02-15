@@ -1,31 +1,167 @@
 import { getSessionForApi } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
-import { genai, IMAGE_MODEL, buildLayoutPrompt } from '@/lib/gemini';
+import { genai, IMAGE_MODEL, buildLayoutPrompt, type VenueShapeInfo } from '@/lib/gemini';
 import { boundsToMetrics, type VenueMetrics } from '@/lib/venueBounds';
+import { renderShapeBoundary } from '@/lib/renderShapeBoundary';
 import { NextResponse } from 'next/server';
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-/** Build a short venue-shape summary from stored drawn_shapes for the AI prompt. */
-function venueShapeSummary(drawnShapes: unknown): string | null {
+/** Approximate meters per degree latitude at the equator. */
+const METERS_PER_DEGREE_LAT = 111_320;
+
+/** Convert two [lat, lng] points to distance in meters. */
+function latlngDistanceMeters(
+  a: [number, number],
+  b: [number, number],
+): number {
+  const dLat = (b[0] - a[0]) * METERS_PER_DEGREE_LAT;
+  const avgLat = (a[0] + b[0]) / 2;
+  const dLng =
+    (b[1] - a[1]) * METERS_PER_DEGREE_LAT * Math.cos((avgLat * Math.PI) / 180);
+  return Math.sqrt(dLat * dLat + dLng * dLng);
+}
+
+/** Format a number as a short, readable string (no decimals for large, 1 for small). */
+function fmtM(m: number): string {
+  return m >= 10 ? `${Math.round(m)}` : m.toFixed(1);
+}
+
+/** Format an aspect ratio as "W:H" with one decimal. */
+function fmtRatio(w: number, h: number): string {
+  if (h === 0) return '1:0';
+  const r = w / h;
+  if (r >= 1) return `${r.toFixed(1)}:1`;
+  return `1:${(1 / r).toFixed(1)}`;
+}
+
+/**
+ * Build a detailed geometric description of the venue from stored drawn_shapes.
+ * Returns null when no usable shape data is available.
+ */
+function venueShapeDescription(drawnShapes: unknown): VenueShapeInfo | null {
   if (!Array.isArray(drawnShapes) || drawnShapes.length === 0) return null;
-  if (drawnShapes.length > 1) return 'Multiple shapes';
-  const first = drawnShapes[0];
-  if (first && typeof first === 'object' && 'type' in first) {
-    const type = String((first as { type?: string }).type).toLowerCase();
-    if (type === 'rectangle') return 'Rectangle';
-    if (type === 'polygon') {
-      const latlngs = (first as { latlngs?: unknown[] }).latlngs;
-      const n = Array.isArray(latlngs) ? latlngs.length : 0;
-      return n > 0 ? `Polygon (${n} points)` : 'Polygon';
+
+  const descriptions: string[] = [];
+  let overallAspect: { w: number; h: number } | null = null;
+
+  for (const shape of drawnShapes) {
+    if (!shape || typeof shape !== 'object' || !('type' in shape)) continue;
+    const type = String((shape as { type?: string }).type).toLowerCase();
+
+    if (type === 'rectangle') {
+      const latlngs = (shape as { latlngs?: [number, number][] }).latlngs;
+      if (!Array.isArray(latlngs) || latlngs.length < 2) {
+        descriptions.push('Rectangle (no coordinate data)');
+        continue;
+      }
+      const sw = latlngs[0]; // [lat, lng] south-west
+      const ne = latlngs[1]; // [lat, lng] north-east
+      const avgLat = (sw[0] + ne[0]) / 2;
+      const heightM = Math.abs(ne[0] - sw[0]) * METERS_PER_DEGREE_LAT;
+      const widthM =
+        Math.abs(ne[1] - sw[1]) *
+        METERS_PER_DEGREE_LAT *
+        Math.cos((avgLat * Math.PI) / 180);
+      const ar = fmtRatio(widthM, heightM);
+      const orientation =
+        widthM > heightM * 1.1
+          ? 'wider than tall'
+          : heightM > widthM * 1.1
+            ? 'taller than wide'
+            : 'roughly square';
+      descriptions.push(
+        `Rectangle, approximately ${fmtM(widthM)} m × ${fmtM(heightM)} m (aspect ratio ${ar}, ${orientation})`,
+      );
+      if (!overallAspect) overallAspect = { w: widthM, h: heightM };
+    } else if (type === 'polygon') {
+      const rawLatlngs = (shape as { latlngs?: unknown }).latlngs;
+      const latlngs: [number, number][] = Array.isArray(rawLatlngs)
+        ? (rawLatlngs as [number, number][])
+        : [];
+      if (latlngs.length < 3) {
+        descriptions.push('Polygon (insufficient vertices)');
+        continue;
+      }
+
+      // Compute bounding box
+      let minLat = Infinity,
+        maxLat = -Infinity,
+        minLng = Infinity,
+        maxLng = -Infinity;
+      for (const [lat, lng] of latlngs) {
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+        if (lng < minLng) minLng = lng;
+        if (lng > maxLng) maxLng = lng;
+      }
+      const avgLat = (minLat + maxLat) / 2;
+      const bbHeightM = (maxLat - minLat) * METERS_PER_DEGREE_LAT;
+      const bbWidthM =
+        (maxLng - minLng) *
+        METERS_PER_DEGREE_LAT *
+        Math.cos((avgLat * Math.PI) / 180);
+
+      // Normalize vertices to 0-100 relative coordinates within bounding box
+      const latSpan = maxLat - minLat || 1e-9;
+      const lngSpan = maxLng - minLng || 1e-9;
+      const normalized = latlngs.map(([lat, lng]) => {
+        // x = longitude direction (left to right), y = latitude direction (bottom to top)
+        const x = Math.round(((lng - minLng) / lngSpan) * 100);
+        const y = Math.round(((lat - minLat) / latSpan) * 100);
+        return `(${x},${y})`;
+      });
+
+      const ar = fmtRatio(bbWidthM, bbHeightM);
+      descriptions.push(
+        `Irregular polygon with ${latlngs.length} vertices at relative positions (0-100 scale, origin bottom-left): ${normalized.join(', ')}. ` +
+          `Bounding box approximately ${fmtM(bbWidthM)} m × ${fmtM(bbHeightM)} m (aspect ratio ${ar})`,
+      );
+      if (!overallAspect) overallAspect = { w: bbWidthM, h: bbHeightM };
+    } else if (type === 'circle') {
+      const center = (shape as { center?: [number, number] }).center;
+      const radius = (shape as { radius?: number }).radius;
+      if (center && typeof radius === 'number') {
+        const diameterM = radius * 2;
+        descriptions.push(
+          `Circle, approximately ${fmtM(diameterM)} m diameter (radius ${fmtM(radius)} m)`,
+        );
+        if (!overallAspect) overallAspect = { w: diameterM, h: diameterM };
+      } else {
+        descriptions.push('Circle (no coordinate data)');
+      }
+    } else if (type === 'polyline') {
+      const rawLatlngs = (shape as { latlngs?: unknown }).latlngs;
+      const latlngs: [number, number][] = Array.isArray(rawLatlngs)
+        ? (rawLatlngs as [number, number][])
+        : [];
+      if (latlngs.length >= 2) {
+        let totalLen = 0;
+        for (let i = 1; i < latlngs.length; i++) {
+          totalLen += latlngDistanceMeters(latlngs[i - 1], latlngs[i]);
+        }
+        descriptions.push(
+          `Polyline boundary, approximately ${fmtM(totalLen)} m total length with ${latlngs.length} points`,
+        );
+      } else {
+        descriptions.push('Polyline (insufficient points)');
+      }
+    } else {
+      descriptions.push(`Custom shape (${type})`);
     }
-    if (type === 'circle') return 'Circle';
-    if (type === 'polyline') return 'Polyline';
-    return type || 'Custom shape';
   }
-  return 'Custom shape';
+
+  if (descriptions.length === 0) return null;
+
+  return {
+    text:
+      descriptions.length === 1
+        ? descriptions[0]
+        : `Multiple shapes:\n${descriptions.map((d, i) => `  ${i + 1}. ${d}`).join('\n')}`,
+    aspectRatio: overallAspect ?? { w: 1, h: 1 },
+  };
 }
 
 /**
@@ -121,10 +257,7 @@ export async function POST(request: Request) {
     }
 
     /* ---------- 3. Fetch event + approved vendors ---------- */
-    // #region agent log
     const eventSelectColumns = 'name, date, location, expected_attendance, venue_width, venue_height, venue_bounds, venue_metrics, drawn_shapes, attractions, organizer_id';
-    fetch('http://127.0.0.1:7242/ingest/fc0146e8-54ca-4e93-b0ea-604c51eefa37', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'optimize/route.ts:select', message: 'Event select columns', data: { eventId, columns: eventSelectColumns }, timestamp: Date.now(), hypothesisId: 'H1' }) }).catch(() => {});
-    // #endregion
     const [eventResult, vendorsResult] = await Promise.all([
       supabaseAdmin
         .from('events')
@@ -141,9 +274,6 @@ export async function POST(request: Request) {
     ]);
 
     if (eventResult.error || !eventResult.data) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/fc0146e8-54ca-4e93-b0ea-604c51eefa37', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'optimize/route.ts:eventError', message: 'Event fetch error', data: { code: eventResult.error?.code, message: eventResult.error?.message, details: eventResult.error?.details }, timestamp: Date.now(), hypothesisId: 'H1' }) }).catch(() => {});
-      // #endregion
       console.error('[optimize] Event lookup failed:', eventResult.error);
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
@@ -160,11 +290,30 @@ export async function POST(request: Request) {
 
     const vendors = vendorsResult.data ?? [];
 
-    /* ---------- 4. Resolve metrics (stored or computed) and venue shape summary ---------- */
+    /* ---------- 4. Resolve metrics (stored or computed) and venue shape description ---------- */
     const metrics = resolveMetrics(event.venue_metrics, event.venue_bounds);
-    const venueShape = venueShapeSummary(event.drawn_shapes);
+    const shapeDesc = venueShapeDescription(event.drawn_shapes);
 
-    /* ---------- 5. Build prompt ---------- */
+    /* ---------- 5. Render reference boundary image (if shapes exist) ---------- */
+    let boundaryImage: { base64: string; width: number; height: number } | null = null;
+    if (shapeDesc && Array.isArray(event.drawn_shapes) && event.drawn_shapes.length > 0) {
+      try {
+        boundaryImage = await renderShapeBoundary(
+          event.drawn_shapes,
+          shapeDesc.aspectRatio,
+        );
+        if (boundaryImage) {
+          console.log(
+            `[optimize] Rendered boundary reference image: ${boundaryImage.width}×${boundaryImage.height}`,
+          );
+        }
+      } catch (renderErr) {
+        console.warn('[optimize] Failed to render boundary image, falling back to text-only:', renderErr);
+      }
+    }
+
+    /* ---------- 6. Build prompt ---------- */
+    const hasReferenceImage = boundaryImage !== null;
     const prompt = buildLayoutPrompt(
       {
         name: event.name,
@@ -177,21 +326,43 @@ export async function POST(request: Request) {
       vendors,
       metrics,
       event.attractions,
-      venueShape,
+      shapeDesc,
+      hasReferenceImage,
     );
 
-    console.log('[optimize] Calling Gemini model:', IMAGE_MODEL);
+    console.log('[optimize] Calling Gemini model:', IMAGE_MODEL, hasReferenceImage ? '(with reference image)' : '(text-only)');
 
-    /* ---------- 6. Call Gemini ---------- */
+    /* ---------- 7. Call Gemini (multi-part if reference image, text-only otherwise) ---------- */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let contents: any;
+
+    if (boundaryImage) {
+      // Multi-part content: reference boundary image + text prompt
+      // (same pattern as the refine route)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const contentParts: any[] = [
+        {
+          inlineData: {
+            mimeType: 'image/png',
+            data: boundaryImage.base64,
+          },
+        },
+        { text: prompt },
+      ];
+      contents = [{ role: 'user', parts: contentParts }];
+    } else {
+      contents = prompt;
+    }
+
     const response = await genai.models.generateContent({
       model: IMAGE_MODEL,
-      contents: prompt,
+      contents,
       config: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
     });
 
-    /* ---------- 7. Parse response parts ---------- */
+    /* ---------- 8. Parse response parts ---------- */
     let imageBase64: string | null = null;
     let imageMimeType = 'image/png';
     let textContent = '';
@@ -218,17 +389,17 @@ export async function POST(request: Request) {
       );
     }
 
-    /* ---------- 8. Parse reasoning + safety notes ---------- */
+    /* ---------- 9. Parse reasoning + safety notes ---------- */
     const { reasoning, safetyNotes } = parseTextResponse(textContent);
 
-    /* ---------- 9. Deactivate existing active layouts ---------- */
+    /* ---------- 10. Deactivate existing active layouts ---------- */
     await supabaseAdmin
       .from('layouts')
       .update({ is_active: false })
       .eq('event_id', eventId)
       .eq('is_active', true);
 
-    /* ---------- 10. Insert new layout ---------- */
+    /* ---------- 11. Insert new layout ---------- */
     const { data: layout, error: insertError } = await supabaseAdmin
       .from('layouts')
       .insert({
@@ -254,7 +425,7 @@ export async function POST(request: Request) {
 
     console.log('[optimize] Layout saved successfully:', layout.id);
 
-    /* ---------- 11. Return result ---------- */
+    /* ---------- 12. Return result ---------- */
     return NextResponse.json({
       layout: {
         id: layout.id,
