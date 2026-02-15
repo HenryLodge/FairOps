@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { MessageSquare, Send, PanelRightClose, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useDashboardStats } from './DashboardStatsContext';
@@ -24,35 +24,37 @@ type RightPanelProps = {
   onClose?: () => void;
 };
 
+type MarkdownChildProps = { children?: ReactNode };
+
 function generateId(): string {
   return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 const markdownComponents = {
-  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-  ul: ({ children }) => (
+  p: ({ children }: MarkdownChildProps) => <p className="mb-2 last:mb-0">{children}</p>,
+  ul: ({ children }: MarkdownChildProps) => (
     <ul className="mb-2 list-disc pl-5 space-y-0.5 last:mb-0" style={{ color: 'var(--color-text)' }}>
       {children}
     </ul>
   ),
-  ol: ({ children }) => (
+  ol: ({ children }: MarkdownChildProps) => (
     <ol className="mb-2 list-decimal pl-5 space-y-0.5 last:mb-0" style={{ color: 'var(--color-text)' }}>
       {children}
     </ol>
   ),
-  li: ({ children }) => <li className="leading-snug">{children}</li>,
-  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-  h1: ({ children }) => (
+  li: ({ children }: MarkdownChildProps) => <li className="leading-snug">{children}</li>,
+  strong: ({ children }: MarkdownChildProps) => <strong className="font-semibold">{children}</strong>,
+  h1: ({ children }: MarkdownChildProps) => (
     <h1 className="text-base font-semibold mt-3 mb-1 first:mt-0" style={{ color: 'var(--color-text)' }}>
       {children}
     </h1>
   ),
-  h2: ({ children }) => (
+  h2: ({ children }: MarkdownChildProps) => (
     <h2 className="text-sm font-semibold mt-3 mb-1 first:mt-0" style={{ color: 'var(--color-text)' }}>
       {children}
     </h2>
   ),
-  h3: ({ children }) => (
+  h3: ({ children }: MarkdownChildProps) => (
     <h3 className="text-sm font-medium mt-2 mb-1 first:mt-0" style={{ color: 'var(--color-text)' }}>
       {children}
     </h3>
