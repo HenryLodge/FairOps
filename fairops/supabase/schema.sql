@@ -16,9 +16,19 @@ CREATE TABLE IF NOT EXISTS events (
   venue_lat           DOUBLE PRECISION,
   venue_lng           DOUBLE PRECISION,
   venue_bounds        JSONB,
+  venue_metrics       JSONB,
+  drawn_shapes        JSONB,
   attractions         JSONB DEFAULT '{}',
   created_at          TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration for existing DBs: run in Supabase SQL Editor if events already exists.
+-- Adds all venue/map columns so Save grid and Optimize with AI work:
+-- ALTER TABLE events ADD COLUMN IF NOT EXISTS venue_lat DOUBLE PRECISION;
+-- ALTER TABLE events ADD COLUMN IF NOT EXISTS venue_lng DOUBLE PRECISION;
+-- ALTER TABLE events ADD COLUMN IF NOT EXISTS venue_bounds JSONB;
+-- ALTER TABLE events ADD COLUMN IF NOT EXISTS venue_metrics JSONB;
+-- ALTER TABLE events ADD COLUMN IF NOT EXISTS drawn_shapes JSONB;
 
 -- 2. Vendors (applications + payment state per event)
 CREATE TABLE IF NOT EXISTS vendors (

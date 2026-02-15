@@ -60,6 +60,8 @@ export interface VenueEvent {
   venue_lat: number | null;
   venue_lng: number | null;
   venue_bounds: GridBounds | null;
+  venue_metrics?: { widthMeters: number; heightMeters: number; areaM2: number } | null;
+  drawn_shapes?: DrawnShape[] | null;
 }
 
 interface VenueMapProps {
@@ -73,6 +75,7 @@ interface VenueMapProps {
     venue_lng: number;
     venue_bounds: GridBounds;
     drawn_shapes?: DrawnShape[];
+    venue_metrics?: { widthMeters: number; heightMeters: number; areaM2: number } | null;
   }) => Promise<void>;
 }
 
@@ -143,6 +146,35 @@ function layerToShape(layer: L.Layer): DrawnShape | null {
     const raw = layer.getLatLngs() as L.LatLng[];
     const latlngs = raw.map((ll) => [ll.lat, ll.lng] as [number, number]);
     return { type: 'polyline', latlngs };
+  }
+  return null;
+}
+
+/** Create a Leaflet layer from saved shape data (inverse of layerToShape). */
+function shapeToLayer(shape: DrawnShape): L.Layer | null {
+  if (!shape.type) return null;
+  const type = shape.type.toLowerCase();
+  const opts = { color: '#F59E0B', weight: 2, fillOpacity: 0.15 };
+
+  if (type === 'circle' && shape.center != null && shape.radius != null) {
+    return L.circle(shape.center as L.LatLngExpression, { radius: shape.radius, ...opts });
+  }
+  if (type === 'marker' && shape.center != null) {
+    return L.marker(shape.center as L.LatLngExpression);
+  }
+  if (type === 'rectangle' && shape.latlngs && shape.latlngs.length >= 2) {
+    const flat = shape.latlngs as [number, number][];
+    const sw = L.latLng(flat[0][0], flat[0][1]);
+    const ne = L.latLng(flat[1][0], flat[1][1]);
+    return L.rectangle(L.latLngBounds(sw, ne), opts);
+  }
+  if (type === 'polygon' && shape.latlngs && shape.latlngs.length >= 3) {
+    const flat = (shape.latlngs as [number, number][]).map(([lat, lng]) => L.latLng(lat, lng));
+    return L.polygon(flat, opts);
+  }
+  if (type === 'polyline' && shape.latlngs && shape.latlngs.length >= 2) {
+    const flat = (shape.latlngs as [number, number][]).map(([lat, lng]) => L.latLng(lat, lng));
+    return L.polyline(flat, { color: '#F59E0B', weight: 2 });
   }
   return null;
 }
@@ -240,7 +272,7 @@ export default function VenueMap({
   const [cols, setCols] = useState(
     Math.min(MAX_DIM, Math.max(MIN_DIM, venueWidth))
   );
-  const [showGrid, setShowGrid] = useState(false);
+  const [showGrid, setShowGrid] = useState(!!event.venue_bounds);
   const [noShapesHint, setNoShapesHint] = useState(false);
   const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
   const [geocoding, setGeocoding] = useState(false);
@@ -250,6 +282,25 @@ export default function VenueMap({
   const drawnItemsRef = useRef<L.FeatureGroup | null>(null);
   /** Explicitly track every drawn layer so we can reliably compute bounds */
   const drawnLayersRef = useRef<Map<number, L.Layer>>(new Map());
+  const restoredShapesForEventId = useRef<string | null>(null);
+  const [layerGroupReady, setLayerGroupReady] = useState(false);
+
+  /* Restore saved drawn shapes when event has drawn_shapes and the FeatureGroup ref is set */
+  useEffect(() => {
+    const shapes = event.drawn_shapes;
+    if (!shapes?.length) return;
+    if (restoredShapesForEventId.current === event.id) return;
+    const fg = drawnItemsRef.current;
+    if (!fg || typeof fg.addLayer !== 'function') return;
+    restoredShapesForEventId.current = event.id;
+    shapes.forEach((shape) => {
+      const layer = shapeToLayer(shape);
+      if (layer) {
+        fg.addLayer(layer);
+        drawnLayersRef.current.set(L.Util.stamp(layer), layer);
+      }
+    });
+  }, [event.id, event.drawn_shapes, layerGroupReady]);
 
   /* Geocode on first mount if we don't have coordinates */
   useEffect(() => {
@@ -284,12 +335,23 @@ export default function VenueMap({
     setSaved(false);
   }, []);
 
-  /** Collect all drawn shapes from our tracked layers */
+  /** Collect all drawn shapes: use FeatureGroup.getLayers() as source of truth so we save every layer on the map */
   const collectShapes = useCallback((): DrawnShape[] => {
     const shapes: DrawnShape[] = [];
-    drawnLayersRef.current.forEach((layer) => {
-      const shape = layerToShape(layer);
-      if (shape) shapes.push(shape);
+    const fg = drawnItemsRef.current;
+    const rawLayers = (fg && typeof fg.getLayers === 'function' ? fg.getLayers() : null)
+      ?? Array.from(drawnLayersRef.current.values());
+    const layers = Array.isArray(rawLayers) ? rawLayers : Array.from(rawLayers as Iterable<L.Layer>);
+    layers.forEach((layer: L.Layer) => {
+      if (layer instanceof L.LayerGroup) {
+        layer.eachLayer((sublayer) => {
+          const shape = layerToShape(sublayer);
+          if (shape) shapes.push(shape);
+        });
+      } else {
+        const shape = layerToShape(layer);
+        if (shape) shapes.push(shape);
+      }
     });
     return shapes;
   }, []);
@@ -300,6 +362,7 @@ export default function VenueMap({
     const saveBounds =
       bounds ?? boundsFromLayers(Array.from(drawnLayersRef.current.values()));
     if (!saveBounds) return;
+    const venue_metrics = boundsToMetrics(saveBounds);
     setSaving(true);
     try {
       await onSave({
@@ -309,6 +372,7 @@ export default function VenueMap({
         venue_lng: center[1],
         venue_bounds: saveBounds,
         drawn_shapes: collectShapes(),
+        venue_metrics: venue_metrics ?? undefined,
       });
       setSaved(true);
     } catch {
@@ -417,6 +481,7 @@ export default function VenueMap({
           <FeatureGroup
             ref={(fg) => {
               drawnItemsRef.current = fg ?? null;
+              if (fg) setLayerGroupReady(true);
             }}
           >
             <EditControl
@@ -427,27 +492,27 @@ export default function VenueMap({
               draw={{
                 polygon: {
                   shapeOptions: {
-                    color: '#6366f1',
+                    color: '#F59E0B',
                     weight: 2,
                     fillOpacity: 0.15,
                   },
                 },
                 rectangle: {
                   shapeOptions: {
-                    color: '#6366f1',
+                    color: '#F59E0B',
                     weight: 2,
                     fillOpacity: 0.15,
                   },
                 },
                 polyline: {
                   shapeOptions: {
-                    color: '#f59e0b',
+                    color: '#F59E0B',
                     weight: 2,
                   },
                 },
                 circle: {
                   shapeOptions: {
-                    color: '#6366f1',
+                    color: '#F59E0B',
                     weight: 2,
                     fillOpacity: 0.15,
                   },
@@ -578,16 +643,22 @@ export default function VenueMap({
         <div className="flex-1" />
 
         {/* Grid size display */}
-        <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+        <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
           {cols} &times; {rows} grid
         </span>
 
         {/* Venue measurements (when bounds exist) */}
         {metrics && (
-          <span className="text-xs tabular-nums" style={{ color: 'var(--color-text-tertiary)' }} title="Approximate venue size from plotted area">
+          <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--color-text-secondary)' }} title="Approximate venue size from plotted area">
             ~{Math.round(metrics.widthMeters)} m &times; {Math.round(metrics.heightMeters)} m
             {' '}
             ({metrics.areaM2 >= 10_000 ? `${(metrics.areaM2 / 10_000).toFixed(1)} ha` : `${Math.round(metrics.areaM2).toLocaleString()} m²`})
+          </span>
+        )}
+        {/* Saved size from DB (when available) */}
+        {event.venue_metrics && (
+          <span className="text-sm font-medium tabular-nums" style={{ color: 'var(--color-text-secondary)' }} title="Saved venue size in database">
+            Saved: ~{Math.round(event.venue_metrics.widthMeters)} m &times; {Math.round(event.venue_metrics.heightMeters)} m
           </span>
         )}
 

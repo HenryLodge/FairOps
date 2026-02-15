@@ -18,9 +18,9 @@ interface GridOverlayProps {
 }
 
 const LINE_OPTIONS: L.PathOptions = {
-  color: '#10b981',
+  color: '#3B82F6',
   weight: 1,
-  opacity: 0.6,
+  opacity: 0.9,
   dashArray: '4 4',
 };
 

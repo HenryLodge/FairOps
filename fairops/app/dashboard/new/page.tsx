@@ -10,8 +10,6 @@ export default function NewEventPage() {
   const [date, setDate] = useState('');
   const [location, setLocation] = useState('');
   const [expectedAttendance, setExpectedAttendance] = useState('');
-  const [venueWidth, setVenueWidth] = useState('');
-  const [venueHeight, setVenueHeight] = useState('');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,14 +31,6 @@ export default function NewEventPage() {
       if (expectedAttendance.trim()) {
         const n = parseInt(expectedAttendance, 10);
         if (!Number.isNaN(n)) body.expected_attendance = n;
-      }
-      if (venueWidth.trim()) {
-        const n = parseInt(venueWidth, 10);
-        if (!Number.isNaN(n)) body.venue_width = n;
-      }
-      if (venueHeight.trim()) {
-        const n = parseInt(venueHeight, 10);
-        if (!Number.isNaN(n)) body.venue_height = n;
       }
       if (description.trim()) body.description = description.trim();
 
@@ -143,34 +133,6 @@ export default function NewEventPage() {
             onChange={(e) => setExpectedAttendance(e.target.value)}
             className={inputClass}
           />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="venueWidth" className={labelClass} style={labelStyle}>
-              Venue width (grid units, optional)
-            </label>
-            <input
-              id="venueWidth"
-              type="number"
-              min={1}
-              value={venueWidth}
-              onChange={(e) => setVenueWidth(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label htmlFor="venueHeight" className={labelClass} style={labelStyle}>
-              Venue height (grid units, optional)
-            </label>
-            <input
-              id="venueHeight"
-              type="number"
-              min={1}
-              value={venueHeight}
-              onChange={(e) => setVenueHeight(e.target.value)}
-              className={inputClass}
-            />
-          </div>
         </div>
         <div>
           <label htmlFor="description" className={labelClass} style={labelStyle}>

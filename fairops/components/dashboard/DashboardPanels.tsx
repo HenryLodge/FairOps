@@ -52,7 +52,7 @@ export function DashboardPanels({ children }: { children: React.ReactNode }) {
         <>
           <div
             role="separator"
-            aria-label="Resize Copilot panel"
+            aria-label="Resize Event Assistant panel"
             onMouseDown={startResize}
             className="dashboard-right-resize w-1 shrink-0 cursor-col-resize border-l transition-colors hover:bg-[var(--color-accent)]/20"
             style={{ borderColor: 'var(--color-border)' }}
@@ -71,10 +71,10 @@ export function DashboardPanels({ children }: { children: React.ReactNode }) {
             background: 'var(--color-surface)',
             color: 'var(--color-text-secondary)',
           }}
-          aria-label="Open Copilot"
+          aria-label="Open Event Assistant"
         >
           <MessageSquare className="h-5 w-5" />
-          <span className="text-[10px] font-medium uppercase tracking-wider">Copilot</span>
+          <span className="text-[10px] font-medium uppercase tracking-wider">Assistant</span>
         </button>
       )}
     </div>

@@ -113,6 +113,8 @@ const ALLOWED_UPDATE_KEYS = [
   'venue_lat',
   'venue_lng',
   'venue_bounds',
+  'venue_metrics',
+  'drawn_shapes',
   'attractions',
 ] as const;
 

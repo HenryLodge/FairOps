@@ -4,6 +4,12 @@ import { useState } from "react";
 
 const VENDOR_TYPES = ["food", "game", "merch", "ride"] as const;
 
+const AREA_UNITS = [
+  { value: "sq_ft", label: "sq ft" },
+  { value: "sq_m", label: "m²" },
+] as const;
+const SQ_M_TO_SQ_FT = 10.7639;
+
 type ApplyFormProps = {
   eventId: string;
   eventName: string;
@@ -22,7 +28,8 @@ export function ApplyForm({
     "food"
   );
   const [description, setDescription] = useState("");
-  const [spaceNeeded, setSpaceNeeded] = useState(1);
+  const [areaValue, setAreaValue] = useState("150");
+  const [areaUnit, setAreaUnit] = useState<"sq_ft" | "sq_m">("sq_ft");
   const [powerNeeded, setPowerNeeded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +43,13 @@ export function ApplyForm({
     }
     setLoading(true);
     try {
+      const raw = parseFloat(areaValue);
+      const spaceSqFt =
+        Number.isNaN(raw) || raw <= 0
+          ? 1
+          : areaUnit === "sq_m"
+            ? Math.max(1, Math.round(raw * SQ_M_TO_SQ_FT))
+            : Math.max(1, Math.round(raw));
       const res = await fetch("/api/vendors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -44,7 +58,7 @@ export function ApplyForm({
           boothName: boothName.trim(),
           vendorType,
           description: description.trim() || undefined,
-          spaceNeeded: spaceNeeded >= 1 ? spaceNeeded : 1,
+          spaceNeeded: spaceSqFt,
           powerNeeded,
         }),
       });
@@ -119,19 +133,34 @@ export function ApplyForm({
         </div>
         <div className="flex gap-4">
           <div>
-            <label htmlFor="spaceNeeded" className="block text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
-              Space needed (optional)
+            <label htmlFor="areaNeeded" className="block text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
+              Area needed (optional)
             </label>
-            <input
-              id="spaceNeeded"
-              type="number"
-              min={1}
-              value={spaceNeeded}
-              onChange={(e) =>
-                setSpaceNeeded(Math.max(1, parseInt(e.target.value, 10) || 1))
-              }
-              className={inputClass.replace("w-full", "w-20")}
-            />
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                id="areaNeeded"
+                type="number"
+                min={areaUnit === "sq_m" ? 0.1 : 1}
+                step={areaUnit === "sq_m" ? 0.1 : 1}
+                value={areaValue}
+                onChange={(e) => setAreaValue(e.target.value)}
+                placeholder={areaUnit === "sq_m" ? "e.g. 14" : "e.g. 150"}
+                className={inputClass.replace("w-full", "w-24")}
+              />
+              <select
+                id="areaUnit"
+                value={areaUnit}
+                onChange={(e) => setAreaUnit(e.target.value as "sq_ft" | "sq_m")}
+                aria-label="Area unit"
+                className={inputClass.replace("w-full", "w-auto min-w-[5rem]")}
+              >
+                {AREA_UNITS.map((u) => (
+                  <option key={u.value} value={u.value}>
+                    {u.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="flex items-end gap-2">
             <input

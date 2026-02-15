@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import type { GridBounds } from './GridOverlay';
+import type { DrawnShape } from './VenueMap';
 import { useDashboardStats, type Attractions } from './DashboardStatsContext';
+import LayoutDisplay, { type LayoutData } from './LayoutDisplay';
 
 const VenueMap = dynamic(() => import('./VenueMap'), {
   ssr: false,
@@ -29,6 +31,9 @@ type VendorRow = {
   description: string | null;
   space_needed?: number;
   power_needed?: boolean;
+  booth_fee?: number | null;
+  payment_status?: string | null;
+  created_at?: string | null;
 };
 
 type EventData = {
@@ -44,10 +49,17 @@ type EventData = {
     venue_lat: number | null;
     venue_lng: number | null;
     venue_bounds: GridBounds | null;
+    venue_metrics?: { widthMeters: number; heightMeters: number; areaM2: number } | null;
+    drawn_shapes?: DrawnShape[] | null;
     attractions: Attractions | null;
   };
   vendors: VendorRow[];
-  layout: unknown;
+  layout: {
+    id: string;
+    layout_data: { image?: string; mimeType?: string; safetyNotes?: string[] };
+    reasoning: string | null;
+    is_active: boolean;
+  } | null;
   stats: {
     totalVendors: number;
     approved: number;
@@ -89,6 +101,11 @@ export function DashboardContent() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [empty, setEmpty] = useState(false);
+
+  /* AI layout state */
+  const [viewMode, setViewMode] = useState<'map' | 'layout'>('map');
+  const [optimizing, setOptimizing] = useState(false);
+  const [refining, setRefining] = useState(false);
 
   /* Keep a ref to the latest selectedEventId so the save callback is always fresh */
   const eventIdRef = useRef(selectedEventId);
@@ -135,25 +152,29 @@ export function DashboardContent() {
     return () => registerSaveAttractions(null);
   }, [registerSaveAttractions]);
 
-  const loadDetail = useCallback(async (eventId: string) => {
-    setDetailLoading(true);
-    setEventData(null);
-    try {
-      const res = await fetch(`/api/events/${eventId}`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(
-          (body as { error?: string }).error || `Failed to load event (${res.status})`
-        );
+  const loadDetail = useCallback(
+    async (eventId: string, options?: { clearData?: boolean }) => {
+      const clearData = options?.clearData !== false;
+      setDetailLoading(true);
+      if (clearData) setEventData(null);
+      try {
+        const res = await fetch(`/api/events/${eventId}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(
+            (body as { error?: string }).error || `Failed to load event (${res.status})`
+          );
+        }
+        const data = (await res.json()) as EventData;
+        setEventData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Something went wrong');
+      } finally {
+        setDetailLoading(false);
       }
-      const data = (await res.json()) as EventData;
-      setEventData(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
-    } finally {
-      setDetailLoading(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -251,6 +272,8 @@ export function DashboardContent() {
       venue_lat: number;
       venue_lng: number;
       venue_bounds: GridBounds;
+      drawn_shapes?: unknown[];
+      venue_metrics?: { widthMeters: number; heightMeters: number; areaM2: number } | null;
     }) => {
       if (!selectedEventId) return;
       const res = await fetch(`/api/events/${selectedEventId}`, {
@@ -264,10 +287,87 @@ export function DashboardContent() {
           (body as { error?: string }).error ?? 'Failed to save grid'
         );
       }
-      await loadDetail(selectedEventId);
+      await loadDetail(selectedEventId, { clearData: false });
     },
     [selectedEventId, loadDetail]
   );
+
+  /* ---- AI optimize handler ---- */
+  const handleOptimize = useCallback(async () => {
+    const eid = eventIdRef.current;
+    if (!eid || optimizing) return;
+    setOptimizing(true);
+    setViewMode('layout');
+    try {
+      const res = await fetch('/api/copilot/optimize', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: eid }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(
+          (body as { error?: string }).error ?? `Optimize failed (${res.status})`
+        );
+      }
+      // Reload event detail to pick up the new layout from DB
+      await loadDetail(eid);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Optimize failed');
+    } finally {
+      setOptimizing(false);
+    }
+  }, [optimizing, loadDetail]);
+
+  /* ---- AI refine handler ---- */
+  const handleRefine = useCallback(
+    async (feedback: string) => {
+      const eid = eventIdRef.current;
+      if (!eid || refining) return;
+      setRefining(true);
+      try {
+        const res = await fetch('/api/copilot/refine', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventId: eid, feedback }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(
+            (body as { error?: string }).error ?? `Refine failed (${res.status})`
+          );
+        }
+        await loadDetail(eid);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Refine failed');
+      } finally {
+        setRefining(false);
+      }
+    },
+    [refining, loadDetail],
+  );
+
+  /* Listen for "optimize-layout" custom DOM event dispatched by Sidebar */
+  useEffect(() => {
+    const handler = () => handleOptimize();
+    window.addEventListener('optimize-layout', handler);
+    return () => window.removeEventListener('optimize-layout', handler);
+  }, [handleOptimize]);
+
+  /* Derive LayoutData from eventData for the LayoutDisplay component */
+  const currentLayout: LayoutData | null = (() => {
+    const raw = eventData?.layout;
+    if (!raw) return null;
+    return {
+      id: raw.id,
+      image: raw.layout_data?.image,
+      mimeType: raw.layout_data?.mimeType,
+      reasoning: raw.reasoning,
+      safetyNotes: raw.layout_data?.safetyNotes,
+    };
+  })();
 
   useEffect(() => {
     load();
@@ -391,25 +491,74 @@ export function DashboardContent() {
         </div>
       ) : eventData ? (
         <>
-          {/* Venue Map — takes main space */}
+          {/* ---- Tab bar: Venue Map / AI Layout ---- */}
+          <div
+            className="flex shrink-0 gap-1 rounded-lg p-1"
+            style={{ background: 'var(--color-bg-elevated)' }}
+          >
+            <button
+              type="button"
+              onClick={() => setViewMode('map')}
+              className="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+              style={
+                viewMode === 'map'
+                  ? { background: 'var(--color-accent)', color: 'var(--color-bg)' }
+                  : { color: 'var(--color-text-secondary)' }
+              }
+            >
+              Venue Map
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('layout')}
+              className="flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+              style={
+                viewMode === 'layout'
+                  ? { background: 'var(--color-accent)', color: 'var(--color-bg)' }
+                  : { color: 'var(--color-text-secondary)' }
+              }
+            >
+              AI Layout
+              {currentLayout && (
+                <span
+                  className="ml-1.5 inline-block h-2 w-2 rounded-full"
+                  style={{ background: '#34D399' }}
+                  title="Layout generated"
+                />
+              )}
+            </button>
+          </div>
+
+          {/* ---- Main content area ---- */}
           <div
             className="min-h-0 flex-1 overflow-hidden rounded-xl border"
             style={{ minHeight: 320, borderColor: 'var(--color-border)' }}
           >
-            {event && (
-              <VenueMap
-                event={{
-                  id: event.id,
-                  location: event.location,
-                  venue_width: event.venue_width,
-                  venue_height: event.venue_height,
-                  venue_lat: event.venue_lat,
-                  venue_lng: event.venue_lng,
-                  venue_bounds: event.venue_bounds,
-                }}
-                venueWidth={event.venue_width ?? 8}
-                venueHeight={event.venue_height ?? 6}
-                onSave={handleSaveGrid}
+            {viewMode === 'map' ? (
+              event && (
+                <VenueMap
+                  event={{
+                    id: event.id,
+                    location: event.location,
+                    venue_width: event.venue_width,
+                    venue_height: event.venue_height,
+                    venue_lat: event.venue_lat,
+                    venue_lng: event.venue_lng,
+                    venue_bounds: event.venue_bounds,
+                    venue_metrics: event.venue_metrics ?? null,
+                    drawn_shapes: event.drawn_shapes ?? null,
+                  }}
+                  venueWidth={event.venue_width ?? 8}
+                  venueHeight={event.venue_height ?? 6}
+                  onSave={handleSaveGrid}
+                />
+              )
+            ) : (
+              <LayoutDisplay
+                layout={currentLayout}
+                onRefine={handleRefine}
+                isOptimizing={optimizing}
+                isRefining={refining}
               />
             )}
           </div>
@@ -440,8 +589,14 @@ export function DashboardContent() {
                       </p>
                       <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
                         {v.vendor_type}
-                        {v.description ? ` · ${v.description.slice(0, 60)}${v.description.length > 60 ? "…" : ""}` : ""}
+                        {typeof v.space_needed === 'number' ? ` · ${v.space_needed} sq ft` : ''}
+                        {v.power_needed ? ' · Power' : ''}
                       </p>
+                      {v.description ? (
+                        <p className="mt-0.5 text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+                          {v.description.length > 80 ? `${v.description.slice(0, 80)}…` : v.description}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="flex items-center gap-2">
                       <span

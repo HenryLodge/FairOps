@@ -195,7 +195,7 @@ export function Sidebar() {
       <div className="p-3">
         <button
           type="button"
-          onClick={() => console.log('AI Button clicked')}
+          onClick={() => window.dispatchEvent(new CustomEvent('optimize-layout'))}
           className="w-full rounded-lg px-4 py-2.5 text-sm font-medium hover:opacity-90"
           style={{ background: 'var(--color-accent)', color: 'var(--color-bg)' }}
         >

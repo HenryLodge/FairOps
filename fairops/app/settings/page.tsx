@@ -1,5 +1,6 @@
 import { verifyAuth } from "@/lib/auth";
 import ResetSetupButton from "@/components/settings/ResetSetupButton";
+import VendorInfoEditor from "@/components/settings/VendorInfoEditor";
 
 export default async function SettingsPage() {
   await verifyAuth();
@@ -16,13 +17,15 @@ export default async function SettingsPage() {
         </h2>
         <div className="flex flex-col gap-3">
           <ResetSetupButton />
+          <VendorInfoEditor />
           <a href="/auth/logout" className="button logout inline-block text-center">
             Log out
           </a>
         </div>
         <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
           Reset setup clears your saved role so you can choose organizer or
-          vendor again on the next load.
+          vendor again on the next load. Vendors can edit their application
+          details (booth name, type, description, space, power) for each event above.
         </p>
       </section>
     </div>
