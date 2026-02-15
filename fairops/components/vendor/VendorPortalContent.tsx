@@ -26,6 +26,7 @@ type EventRow = {
   name: string;
   date: string;
   location: string;
+  default_booth_fee?: number | null;
 };
 
 function formatDate(dateStr: string): string {
@@ -60,6 +61,25 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function PaymentBadge({ status }: { status: string }) {
+  const config: Record<string, { bg: string; color: string; label: string }> = {
+    escrowed: { bg: "rgba(59, 130, 246, 0.2)", color: "#60A5FA", label: "Escrowed" },
+    confirmed: { bg: "rgba(16, 185, 129, 0.2)", color: "#34D399", label: "Confirmed" },
+    refunded: { bg: "rgba(168, 85, 247, 0.2)", color: "#C084FC", label: "Refunded" },
+    paid: { bg: "rgba(16, 185, 129, 0.2)", color: "#34D399", label: "Paid" },
+    unpaid: { bg: "rgba(107, 114, 128, 0.2)", color: "#9CA3AF", label: "Unpaid" },
+  };
+  const c = config[status] ?? config.unpaid;
+  return (
+    <span
+      className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+      style={{ background: c.bg, color: c.color }}
+    >
+      {c.label}
+    </span>
+  );
+}
+
 export function VendorPortalContent({ activeTab = "applications" }: { activeTab?: VendorPortalTab }) {
   const [applications, setApplications] = useState<VendorRow[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -68,6 +88,7 @@ export function VendorPortalContent({ activeTab = "applications" }: { activeTab?
   const [applyEvent, setApplyEvent] = useState<{
     id: string;
     name: string;
+    default_booth_fee?: number | null;
   } | null>(null);
 
   const load = useCallback(async () => {
@@ -195,9 +216,7 @@ export function VendorPortalContent({ activeTab = "applications" }: { activeTab?
                         {app.vendor_type}
                       </span>
                       <StatusBadge status={app.status} />
-                      <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
-                        {app.payment_status ?? "unpaid"}
-                      </span>
+                      <PaymentBadge status={app.payment_status ?? "unpaid"} />
                     </div>
                   </li>
                 );
@@ -238,6 +257,11 @@ export function VendorPortalContent({ activeTab = "applications" }: { activeTab?
                           {formatDate(event.date)}
                           {event.location ? ` · ${event.location}` : ""}
                         </p>
+                        {event.default_booth_fee != null && event.default_booth_fee > 0 && (
+                          <p className="text-xs font-medium" style={{ color: "var(--color-accent)" }}>
+                            Booth fee: {(event.default_booth_fee / 1_000_000_000).toFixed(2)} SOL
+                          </p>
+                        )}
                       </div>
                       <div>
                         {alreadyApplied ? (
@@ -248,7 +272,7 @@ export function VendorPortalContent({ activeTab = "applications" }: { activeTab?
                           <button
                             type="button"
                             onClick={() =>
-                              setApplyEvent({ id: event.id, name: event.name })
+                              setApplyEvent({ id: event.id, name: event.name, default_booth_fee: event.default_booth_fee })
                             }
                             className="rounded-lg px-3 py-1.5 text-sm font-medium transition-all hover:opacity-90"
                             style={{ background: "var(--color-accent)", color: "var(--color-bg)" }}
@@ -266,6 +290,7 @@ export function VendorPortalContent({ activeTab = "applications" }: { activeTab?
                         <ApplyForm
                           eventId={applyEvent.id}
                           eventName={applyEvent.name}
+                          boothFeeLamports={applyEvent.default_booth_fee}
                           onSuccess={handleApplySuccess}
                           onCancel={() => setApplyEvent(null)}
                         />

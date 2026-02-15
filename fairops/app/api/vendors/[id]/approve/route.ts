@@ -2,6 +2,16 @@ import { getSessionForApi } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { isValidUuid } from '@/lib/uuid';
 import { NextResponse } from 'next/server';
+import {
+  getConnection,
+  getEscrowKeypair,
+} from '@/lib/solana';
+import {
+  PublicKey,
+  Transaction,
+  SystemProgram,
+  sendAndConfirmTransaction,
+} from '@solana/web3.js';
 
 export async function PUT(
   request: Request,
@@ -50,9 +60,10 @@ export async function PUT(
       );
     }
 
+    // Fetch vendor with event info to get organizer_wallet
     const { data: vendor, error: fetchError } = await supabaseAdmin
       .from('vendors')
-      .select('*')
+      .select('*, event:events(id, organizer_wallet)')
       .eq('id', id)
       .single();
 
@@ -63,12 +74,57 @@ export async function PUT(
       );
     }
 
+    // Release escrow funds to organizer if payment was escrowed
+    let releaseTx: string | null = null;
+    if (vendor.payment_status === 'escrowed' && vendor.booth_fee) {
+      const eventData = vendor.event as { id: string; organizer_wallet: string | null } | null;
+      const organizerWallet = eventData?.organizer_wallet;
+      if (!organizerWallet) {
+        return NextResponse.json(
+          { error: 'Organizer wallet not configured for this event. Set it in the dashboard first.' },
+          { status: 400 }
+        );
+      }
+
+      try {
+        const connection = getConnection();
+        const escrowKeypair = getEscrowKeypair();
+        const organizerPubkey = new PublicKey(organizerWallet);
+
+        const transaction = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey: escrowKeypair.publicKey,
+            toPubkey: organizerPubkey,
+            lamports: Number(vendor.booth_fee),
+          })
+        );
+
+        releaseTx = await sendAndConfirmTransaction(connection, transaction, [escrowKeypair], {
+          commitment: 'confirmed',
+        });
+      } catch (solErr) {
+        console.error('PUT /api/vendors/[id]/approve: escrow release failed:', solErr);
+        return NextResponse.json(
+          {
+            error: `Escrow release failed: ${solErr instanceof Error ? solErr.message : 'Unknown error'}`,
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      status: 'approved',
+      booth_fee: boothFee,
+    };
+    if (releaseTx) {
+      updatePayload.payment_status = 'confirmed';
+      updatePayload.payment_tx = releaseTx;
+    }
+
     const { data, error } = await supabaseAdmin
       .from('vendors')
-      .update({
-        status: 'approved',
-        booth_fee: boothFee,
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();

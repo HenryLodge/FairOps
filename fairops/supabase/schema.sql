@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS events (
   venue_height        INTEGER,
   description         TEXT,
   organizer_wallet    TEXT,
+  default_booth_fee  BIGINT,
   venue_lat           DOUBLE PRECISION,
   venue_lng           DOUBLE PRECISION,
   venue_bounds        JSONB,
@@ -29,6 +30,8 @@ CREATE TABLE IF NOT EXISTS events (
 -- ALTER TABLE events ADD COLUMN IF NOT EXISTS venue_bounds JSONB;
 -- ALTER TABLE events ADD COLUMN IF NOT EXISTS venue_metrics JSONB;
 -- ALTER TABLE events ADD COLUMN IF NOT EXISTS drawn_shapes JSONB;
+-- Booth fee (lamports) per event for Solana escrow:
+-- ALTER TABLE events ADD COLUMN IF NOT EXISTS default_booth_fee BIGINT;
 
 -- 2. Vendors (applications + payment state per event)
 CREATE TABLE IF NOT EXISTS vendors (

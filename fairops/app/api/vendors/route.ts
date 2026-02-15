@@ -2,6 +2,7 @@ import { getSessionForApi } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { isValidUuid } from '@/lib/uuid';
 import { NextResponse } from 'next/server';
+import { getConnection, getEscrowPublicKey, verifyEscrowTransfer } from '@/lib/solana';
 
 const VENDOR_TYPES = ['food', 'game', 'merch', 'ride'] as const;
 
@@ -161,6 +162,39 @@ export async function POST(request: Request) {
     }
     const powerNeeded = Boolean(body.powerNeeded);
 
+    // --- Escrow payment fields ---
+    const txSignature = typeof body.txSignature === 'string' ? body.txSignature : null;
+    const walletAddress = typeof body.walletAddress === 'string' ? body.walletAddress : null;
+    const boothFee = typeof body.boothFee === 'number' && Number.isInteger(body.boothFee) && body.boothFee > 0
+      ? body.boothFee
+      : null;
+
+    let paymentStatus = 'unpaid';
+    let paymentTx: string | null = null;
+
+    // Verify the on-chain transaction if provided
+    if (txSignature && walletAddress && boothFee) {
+      try {
+        const connection = getConnection();
+        const escrowPubkey = getEscrowPublicKey();
+        await verifyEscrowTransfer(connection, {
+          signature: txSignature,
+          expectedLamports: boothFee,
+          escrowWallet: escrowPubkey,
+        });
+        paymentStatus = 'escrowed';
+        paymentTx = txSignature;
+      } catch (verifyErr) {
+        console.error('POST /api/vendors: escrow verification failed:', verifyErr);
+        return NextResponse.json(
+          {
+            error: `Escrow verification failed: ${verifyErr instanceof Error ? verifyErr.message : 'Unknown error'}`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from('vendors')
       .insert({
@@ -171,6 +205,10 @@ export async function POST(request: Request) {
         description,
         space_needed: spaceNeeded,
         power_needed: powerNeeded,
+        booth_fee: boothFee,
+        payment_status: paymentStatus,
+        payment_tx: paymentTx,
+        wallet_address: walletAddress,
       })
       .select()
       .single();

@@ -76,9 +76,14 @@ export async function GET(
       approved: vendors.filter((v) => v.status === 'approved').length,
       pending: vendors.filter((v) => v.status === 'pending').length,
       rejected: vendors.filter((v) => v.status === 'rejected').length,
+      escrowed: vendors.filter((v) => v.payment_status === 'escrowed').length,
       paid: vendors.filter((v) => v.payment_status === 'confirmed').length,
+      refunded: vendors.filter((v) => v.payment_status === 'refunded').length,
       totalRevenue: vendors
         .filter((v) => v.payment_status === 'confirmed')
+        .reduce((sum, v) => sum + Number(v.booth_fee ?? 0), 0),
+      totalEscrowed: vendors
+        .filter((v) => v.payment_status === 'escrowed')
         .reduce((sum, v) => sum + Number(v.booth_fee ?? 0), 0),
       layoutStatus: layout ? 'generated' as const : 'none' as const,
       safetyFlagsCount: layout?.layout_data?.safetyNotes?.length ?? 0,
@@ -110,6 +115,7 @@ const ALLOWED_UPDATE_KEYS = [
   'venue_height',
   'description',
   'organizer_wallet',
+  'default_booth_fee',
   'venue_lat',
   'venue_lng',
   'venue_bounds',

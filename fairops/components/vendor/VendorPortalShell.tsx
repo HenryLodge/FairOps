@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Settings } from "lucide-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { VendorPortalContent } from "./VendorPortalContent";
 
 type Tab = "applications" | "events";
@@ -16,8 +17,10 @@ export function VendorPortalShell() {
         <h1 className="text-xl font-semibold" style={{ color: "var(--color-text)", fontFamily: "var(--font-heading)", letterSpacing: "-0.02em" }}>
           Vendor Portal
         </h1>
-        <Link
-          href="/settings"
+        <div className="flex items-center gap-2">
+          <WalletMultiButton />
+          <Link
+            href="/settings"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors hover:opacity-90"
           style={{
             borderColor: "var(--color-border)",
@@ -27,7 +30,8 @@ export function VendorPortalShell() {
           aria-label="Settings"
         >
           <Settings className="h-4 w-4" />
-        </Link>
+          </Link>
+        </div>
       </header>
 
       {/* Page selector */}

@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth";
 import { DashboardContent } from "@/components/dashboard/DashboardContent";
+import { WalletButton } from "@/components/WalletButton";
 import Image from "next/image";
 
 export default async function DashboardPage() {
@@ -18,6 +19,7 @@ export default async function DashboardPage() {
           Organizer Dashboard
         </h1>
         <div className="flex items-center gap-3">
+          <WalletButton />
           <div className="flex items-center gap-2 text-sm" style={{ color: "var(--color-text-secondary)" }}>
             <Image
               src={user.picture || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='%2363b3ed'/%3E%3C/svg%3E"}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import { Auth0Provider } from "@auth0/nextjs-auth0/client";
+import { WalletProvider } from "@/components/WalletProvider";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -29,7 +30,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable}`} suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <Auth0Provider>{children}</Auth0Provider>
+        <Auth0Provider>
+          <WalletProvider>{children}</WalletProvider>
+        </Auth0Provider>
       </body>
     </html>
   );

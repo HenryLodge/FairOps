@@ -11,6 +11,7 @@ export default function NewEventPage() {
   const [location, setLocation] = useState('');
   const [expectedAttendance, setExpectedAttendance] = useState('');
   const [description, setDescription] = useState('');
+  const [boothFee, setBoothFee] = useState('0.1');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +34,13 @@ export default function NewEventPage() {
         if (!Number.isNaN(n)) body.expected_attendance = n;
       }
       if (description.trim()) body.description = description.trim();
+      if (boothFee.trim()) {
+        const solVal = parseFloat(boothFee);
+        if (!Number.isNaN(solVal) && solVal > 0) {
+          // Convert SOL to lamports (1 SOL = 1_000_000_000 lamports)
+          body.default_booth_fee = Math.round(solVal * 1_000_000_000);
+        }
+      }
 
       const res = await fetch('/api/events', {
         method: 'POST',
@@ -145,6 +153,30 @@ export default function NewEventPage() {
             onChange={(e) => setDescription(e.target.value)}
             className={inputClass}
           />
+        </div>
+        <div>
+          <label htmlFor="boothFee" className={labelClass} style={labelStyle}>
+            Booth fee in SOL (optional)
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              id="boothFee"
+              type="number"
+              min={0}
+              step={0.01}
+              value={boothFee}
+              onChange={(e) => setBoothFee(e.target.value)}
+              placeholder="e.g. 0.1"
+              className={inputClass}
+              style={{ maxWidth: '10rem' }}
+            />
+            <span className="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
+              SOL
+            </span>
+          </div>
+          <p className="mt-1 text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+            Vendors will stake this amount when applying. Funds are escrowed until you approve or reject.
+          </p>
         </div>
         <div className="flex gap-3">
           <button

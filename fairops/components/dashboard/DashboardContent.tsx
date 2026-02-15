@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import { useWallet } from '@solana/wallet-adapter-react';
 import type { GridBounds } from './GridOverlay';
 import type { DrawnShape } from './VenueMap';
 import { useDashboardStats, type Attractions } from './DashboardStatsContext';
@@ -52,6 +53,7 @@ type EventData = {
     venue_metrics?: { widthMeters: number; heightMeters: number; areaM2: number } | null;
     drawn_shapes?: DrawnShape[] | null;
     attractions: Attractions | null;
+    organizer_wallet?: string | null;
   };
   vendors: VendorRow[];
   layout: {
@@ -71,6 +73,25 @@ type EventData = {
     safetyFlagsCount: number;
   };
 };
+
+function PaymentStatusBadge({ status }: { status: string }) {
+  const config: Record<string, { bg: string; color: string; label: string }> = {
+    escrowed: { bg: 'rgba(59, 130, 246, 0.2)', color: '#60A5FA', label: 'Escrowed' },
+    confirmed: { bg: 'rgba(16, 185, 129, 0.2)', color: '#34D399', label: 'Confirmed' },
+    refunded: { bg: 'rgba(168, 85, 247, 0.2)', color: '#C084FC', label: 'Refunded' },
+    paid: { bg: 'rgba(16, 185, 129, 0.2)', color: '#34D399', label: 'Paid' },
+    unpaid: { bg: 'rgba(107, 114, 128, 0.2)', color: '#9CA3AF', label: 'Unpaid' },
+  };
+  const c = config[status] ?? config.unpaid;
+  return (
+    <span
+      className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+      style={{ background: c.bg, color: c.color }}
+    >
+      {c.label}
+    </span>
+  );
+}
 
 function formatDate(dateStr: string): string {
   try {
@@ -94,6 +115,7 @@ export function DashboardContent() {
     setAttractions: setCtxAttractions,
     registerSaveAttractions,
   } = useDashboardStats();
+  const { publicKey, connected } = useWallet();
   const [eventsList, setEventsList] = useState<EventListItem[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [eventData, setEventData] = useState<EventData | null>(null);
@@ -110,6 +132,31 @@ export function DashboardContent() {
   /* Keep a ref to the latest selectedEventId so the save callback is always fresh */
   const eventIdRef = useRef(selectedEventId);
   eventIdRef.current = selectedEventId;
+
+  /* ---- Auto-save organizer wallet to the selected event ---- */
+  const savedWalletRef = useRef<string | null>(null);
+  useEffect(() => {
+    const eventId = eventData?.event.id;
+    if (!eventId || !connected || !publicKey) return;
+
+    const walletAddr = publicKey.toBase58();
+    // Skip if the event already has this wallet, or we just saved it
+    if (eventData.event.organizer_wallet === walletAddr) return;
+    if (savedWalletRef.current === `${eventId}:${walletAddr}`) return;
+    savedWalletRef.current = `${eventId}:${walletAddr}`;
+
+    fetch(`/api/events/${eventId}`, {
+      method: 'PUT',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ organizer_wallet: walletAddr }),
+    })
+      .then((res) => {
+        if (!res.ok) console.error('[wallet] Failed to save organizer_wallet:', res.status);
+        else console.log('[wallet] Saved organizer_wallet to event', eventId);
+      })
+      .catch((err) => console.error('[wallet] Error saving organizer_wallet:', err));
+  }, [eventData?.event.id, eventData?.event.organizer_wallet, connected, publicKey]);
 
   useEffect(() => {
     setStats(eventData?.stats ?? null);
@@ -611,6 +658,7 @@ export function DashboardContent() {
                       >
                         {v.status}
                       </span>
+                      <PaymentStatusBadge status={v.payment_status ?? 'unpaid'} />
                       {v.status === 'pending' && (
                         <>
                           <button

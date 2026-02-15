@@ -1,6 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import {
+  PublicKey,
+  Transaction,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+} from "@solana/web3.js";
 
 const VENDOR_TYPES = ["food", "game", "merch", "ride"] as const;
 
@@ -10,9 +17,17 @@ const AREA_UNITS = [
 ] as const;
 const SQ_M_TO_SQ_FT = 10.7639;
 
+/** Default booth fee in SOL when event has none set */
+const DEFAULT_BOOTH_FEE_SOL = 0.1;
+
+const ESCROW_WALLET_ADDRESS =
+  process.env.NEXT_PUBLIC_ESCROW_WALLET_ADDRESS ?? "";
+
 type ApplyFormProps = {
   eventId: string;
   eventName: string;
+  /** Booth fee in lamports (from event.default_booth_fee). Falls back to DEFAULT_BOOTH_FEE_SOL. */
+  boothFeeLamports?: number | null;
   onSuccess: () => void;
   onCancel: () => void;
 };
@@ -20,9 +35,13 @@ type ApplyFormProps = {
 export function ApplyForm({
   eventId,
   eventName,
+  boothFeeLamports,
   onSuccess,
   onCancel,
 }: ApplyFormProps) {
+  const { publicKey, sendTransaction, connected } = useWallet();
+  const { connection } = useConnection();
+
   const [boothName, setBoothName] = useState("");
   const [vendorType, setVendorType] = useState<(typeof VENDOR_TYPES)[number]>(
     "food"
@@ -34,6 +53,12 @@ export function ApplyForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const feeLamports =
+    boothFeeLamports && boothFeeLamports > 0
+      ? boothFeeLamports
+      : Math.round(DEFAULT_BOOTH_FEE_SOL * LAMPORTS_PER_SOL);
+  const feeSol = feeLamports / LAMPORTS_PER_SOL;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -41,8 +66,62 @@ export function ApplyForm({
       setError("Booth name is required.");
       return;
     }
+    if (!connected || !publicKey) {
+      setError("Please connect your Phantom wallet first.");
+      return;
+    }
+    if (!ESCROW_WALLET_ADDRESS) {
+      setError("Escrow wallet address is not configured.");
+      return;
+    }
     setLoading(true);
     try {
+      // 0. Pre-flight: check the vendor has enough SOL
+      const balanceLamports = await connection.getBalance(publicKey, "confirmed");
+      // Need fee lamports + ~5000 lamports for the tx fee
+      const estimatedTxFee = 5000;
+      if (balanceLamports < feeLamports + estimatedTxFee) {
+        const required = (feeLamports + estimatedTxFee) / LAMPORTS_PER_SOL;
+        const available = balanceLamports / LAMPORTS_PER_SOL;
+        setError(
+          `Insufficient SOL. You need ~${required} SOL but only have ${available} SOL. ` +
+          `Request testnet SOL from https://faucet.solana.com (select Testnet)`
+        );
+        setLoading(false);
+        return;
+      }
+
+      // 1. Build the SOL transfer to escrow
+      const escrowPubkey = new PublicKey(ESCROW_WALLET_ADDRESS);
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: escrowPubkey,
+          lamports: feeLamports,
+        })
+      );
+
+      // Fetch a recent blockhash with "confirmed" commitment (not "finalized")
+      // to avoid stale-blockhash rejections on devnet, where "finalized"
+      // blockhashes can already be too old by the time Phantom signs.
+      const { blockhash, lastValidBlockHeight } =
+        await connection.getLatestBlockhash("confirmed");
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = publicKey;
+
+      // 2. Send via wallet adapter → Phantom signAndSendTransaction
+      const signature = await sendTransaction(transaction, connection, {
+        skipPreflight: false,
+        preflightCommitment: "confirmed",
+      });
+
+      // Wait for on-chain confirmation
+      await connection.confirmTransaction(
+        { signature, blockhash, lastValidBlockHeight },
+        "confirmed"
+      );
+
+      // 3. Submit the application with the tx signature
       const raw = parseFloat(areaValue);
       const spaceSqFt =
         Number.isNaN(raw) || raw <= 0
@@ -60,6 +139,9 @@ export function ApplyForm({
           description: description.trim() || undefined,
           spaceNeeded: spaceSqFt,
           powerNeeded,
+          txSignature: signature,
+          walletAddress: publicKey.toBase58(),
+          boothFee: feeLamports,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -68,6 +150,26 @@ export function ApplyForm({
         return;
       }
       onSuccess();
+    } catch (err: unknown) {
+      // Extract a useful message from Phantom / wallet-adapter errors.
+      // WalletSendTransactionError often wraps the real cause in `error` property.
+      let msg = "Transaction failed.";
+      if (err && typeof err === "object") {
+        const e = err as Record<string, unknown>;
+        // Phantom internal error codes (e.g. -32003 = rejected, -32603 = internal)
+        if (typeof e.code === "number") {
+          if (e.code === 4001) msg = "Transaction was rejected by the user.";
+          else if (e.code === -32003) msg = "Transaction rejected by the wallet.";
+          else if (e.code === -32002) msg = "Another transaction is already pending in Phantom. Close it and try again.";
+          else if (e.code === -32603) msg = "Phantom internal error. Make sure Phantom is set to Testnet (Settings → Developer Settings → Testnet Mode → Solana Testnet).";
+          else msg = (e.message as string) || `Wallet error (code ${e.code}).`;
+        } else if (e.message && typeof e.message === "string") {
+          msg = e.message === "Unexpected error"
+            ? "Phantom returned \"Unexpected error\". Ensure Phantom is set to Testnet and your wallet has enough SOL."
+            : e.message;
+        }
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -84,6 +186,23 @@ export function ApplyForm({
       <h3 className="text-sm font-medium" style={{ color: "var(--color-text)" }}>
         Apply to: {eventName}
       </h3>
+      {/* Booth fee info */}
+      <div
+        className="mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
+        style={{ background: "var(--color-accent-soft)", color: "var(--color-accent)" }}
+      >
+        <span className="font-medium">Booth fee:</span>
+        <span>{feeSol} SOL</span>
+        <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
+          (escrowed until organizer approves/rejects)
+        </span>
+      </div>
+      {/* Wallet warning */}
+      {!connected && (
+        <p className="mt-1 text-sm text-[#F87171]">
+          Connect your Phantom wallet above before applying.
+        </p>
+      )}
       <form onSubmit={handleSubmit} className="mt-3 space-y-3">
         <div>
           <label htmlFor="boothName" className="block text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
@@ -182,7 +301,7 @@ export function ApplyForm({
             disabled={loading}
             className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-[var(--color-bg)] hover:opacity-90 disabled:opacity-50"
           >
-            {loading ? "Submitting…" : "Submit application"}
+            {loading ? "Sending SOL & submitting…" : `Stake ${feeSol} SOL & Apply`}
           </button>
           <button
             type="button"

@@ -2,6 +2,16 @@ import { getSessionForApi } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { isValidUuid } from '@/lib/uuid';
 import { NextResponse } from 'next/server';
+import {
+  getConnection,
+  getEscrowKeypair,
+} from '@/lib/solana';
+import {
+  PublicKey,
+  Transaction,
+  SystemProgram,
+  sendAndConfirmTransaction,
+} from '@solana/web3.js';
 
 export async function PUT(
   _request: Request,
@@ -32,7 +42,7 @@ export async function PUT(
 
     const { data: vendor, error: fetchError } = await supabaseAdmin
       .from('vendors')
-      .select('id')
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -43,9 +53,47 @@ export async function PUT(
       );
     }
 
+    // Refund escrowed SOL back to the vendor's wallet
+    let refundTx: string | null = null;
+    if (vendor.payment_status === 'escrowed' && vendor.wallet_address && vendor.booth_fee) {
+      try {
+        const connection = getConnection();
+        const escrowKeypair = getEscrowKeypair();
+        const vendorPubkey = new PublicKey(vendor.wallet_address);
+
+        const transaction = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey: escrowKeypair.publicKey,
+            toPubkey: vendorPubkey,
+            lamports: Number(vendor.booth_fee),
+          })
+        );
+
+        refundTx = await sendAndConfirmTransaction(connection, transaction, [escrowKeypair], {
+          commitment: 'confirmed',
+        });
+      } catch (solErr) {
+        console.error('PUT /api/vendors/[id]/reject: escrow refund failed:', solErr);
+        return NextResponse.json(
+          {
+            error: `Escrow refund failed: ${solErr instanceof Error ? solErr.message : 'Unknown error'}`,
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      status: 'rejected',
+    };
+    if (refundTx) {
+      updatePayload.payment_status = 'refunded';
+      updatePayload.payment_tx = refundTx;
+    }
+
     const { data, error } = await supabaseAdmin
       .from('vendors')
-      .update({ status: 'rejected' })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();

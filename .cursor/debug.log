@@ -1,0 +1,32 @@
+{"location":"api/events/route.ts:GET","message":"GET /api/events entry","data":{"route":"list"},"timestamp":1771143032385,"hypothesisId":"H1"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events Supabase error","data":{"message":"column events.default_booth_fee does not exist","code":"42703"},"timestamp":1771143032556,"hypothesisId":"H1"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events entry","data":{"route":"list"},"timestamp":1771143046227,"hypothesisId":"H1"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events Supabase error","data":{"message":"column events.default_booth_fee does not exist","code":"42703"},"timestamp":1771143046314,"hypothesisId":"H1"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events entry","data":{"route":"list"},"timestamp":1771143154465,"hypothesisId":"H1"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events success","data":{"count":2},"timestamp":1771143154576,"hypothesisId":"H1","runId":"post-fix"}
+{"location":"api/events/[id]/route.ts:GET","message":"GET /api/events/[id] entry","data":{"eventId":"e82ef5db-9dbd-44ea-9d92-5a9533eaed46"},"timestamp":1771143155387,"hypothesisId":"H2"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events entry","data":{"route":"list"},"timestamp":1771143225047,"hypothesisId":"H1"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events success","data":{"count":2},"timestamp":1771143225238,"hypothesisId":"H1","runId":"post-fix"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events entry","data":{"route":"list"},"timestamp":1771143225274,"hypothesisId":"H1"}
+{"location":"api/events/[id]/route.ts:GET","message":"GET /api/events/[id] entry","data":{"eventId":"e82ef5db-9dbd-44ea-9d92-5a9533eaed46"},"timestamp":1771143225315,"hypothesisId":"H2"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events success","data":{"count":2},"timestamp":1771143225416,"hypothesisId":"H1","runId":"post-fix"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events entry","data":{"route":"list"},"timestamp":1771143282267,"hypothesisId":"H1"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events success","data":{"count":5},"timestamp":1771143282403,"hypothesisId":"H1","runId":"post-fix"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events entry","data":{"route":"list"},"timestamp":1771143282471,"hypothesisId":"H1"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events success","data":{"count":5},"timestamp":1771143282604,"hypothesisId":"H1","runId":"post-fix"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events entry","data":{"route":"list"},"timestamp":1771143308901,"hypothesisId":"H1"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events success","data":{"count":2},"timestamp":1771143309014,"hypothesisId":"H1","runId":"post-fix"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events entry","data":{"route":"list"},"timestamp":1771143309094,"hypothesisId":"H1"}
+{"location":"api/events/[id]/route.ts:GET","message":"GET /api/events/[id] entry","data":{"eventId":"e82ef5db-9dbd-44ea-9d92-5a9533eaed46"},"timestamp":1771143309142,"hypothesisId":"H2"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events success","data":{"count":2},"timestamp":1771143309218,"hypothesisId":"H1","runId":"post-fix"}
+{"location":"api/events/[id]/route.ts:GET","message":"GET /api/events/[id] entry","data":{"eventId":"e82ef5db-9dbd-44ea-9d92-5a9533eaed46"},"timestamp":1771143309683,"hypothesisId":"H2"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events entry","data":{"route":"list"},"timestamp":1771143326198,"hypothesisId":"H1"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events success","data":{"count":5},"timestamp":1771143326347,"hypothesisId":"H1","runId":"post-fix"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events entry","data":{"route":"list"},"timestamp":1771143326387,"hypothesisId":"H1"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events success","data":{"count":5},"timestamp":1771143326480,"hypothesisId":"H1","runId":"post-fix"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events entry","data":{"route":"list"},"timestamp":1771143417243,"hypothesisId":"H1"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events success","data":{"count":2},"timestamp":1771143417330,"hypothesisId":"H1","runId":"post-fix"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events entry","data":{"route":"list"},"timestamp":1771143417402,"hypothesisId":"H1"}
+{"location":"api/events/[id]/route.ts:GET","message":"GET /api/events/[id] entry","data":{"eventId":"e82ef5db-9dbd-44ea-9d92-5a9533eaed46"},"timestamp":1771143417449,"hypothesisId":"H2"}
+{"location":"api/events/route.ts:GET","message":"GET /api/events success","data":{"count":2},"timestamp":1771143417514,"hypothesisId":"H1","runId":"post-fix"}
+{"location":"api/events/[id]/route.ts:GET","message":"GET /api/events/[id] entry","data":{"eventId":"e82ef5db-9dbd-44ea-9d92-5a9533eaed46"},"timestamp":1771143417906,"hypothesisId":"H2"}

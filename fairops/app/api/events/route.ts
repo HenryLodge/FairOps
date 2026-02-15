@@ -14,7 +14,7 @@ export async function GET() {
 
     let query = supabaseAdmin
       .from('events')
-      .select('id, name, date')
+      .select('id, name, date, location, default_booth_fee')
       .order('created_at', { ascending: false })
       .limit(5);
 
@@ -115,6 +115,12 @@ export async function POST(request: Request) {
       typeof body.description === 'string' ? body.description : null;
     const organizer_wallet =
       typeof body.organizer_wallet === 'string' ? body.organizer_wallet : null;
+    const default_booth_fee =
+      typeof body.default_booth_fee === 'number' &&
+      Number.isInteger(body.default_booth_fee) &&
+      body.default_booth_fee > 0
+        ? body.default_booth_fee
+        : null;
 
     const { data, error } = await supabaseAdmin
       .from('events')
@@ -128,6 +134,7 @@ export async function POST(request: Request) {
         venue_height,
         description,
         organizer_wallet,
+        default_booth_fee,
       })
       .select()
       .single();
