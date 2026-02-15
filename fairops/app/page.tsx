@@ -54,7 +54,7 @@ export default async function Home() {
               <span className="landing-hero-title-accent">all events</span>
             </h1>
             <p className="landing-hero-desc">
-              The ultimate way to organize and operate every event. Built for organizers who need
+              The ultimate way to plan, organize, and host every event. Built for organizers who need
               clarity, not complexity.
             </p>
             <div className="landing-hero-actions">
