@@ -152,8 +152,8 @@ function VendorAppEditForm({
   setSavingId: (id: string | null) => void;
   onSaved: () => void;
 }) {
-  const eventName = app.event?.name ?? app.events?.name ?? 'Event';
-  const eventDate = app.event?.date ?? app.events?.date ?? '';
+  const eventName = app.event?.name ?? 'Event';
+  const eventDate = app.event?.date ?? '';
 
   const [boothName, setBoothName] = useState(app.booth_name);
   const [vendorType, setVendorType] = useState(app.vendor_type);
