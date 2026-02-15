@@ -4,6 +4,12 @@
 
 ---
 
+## Elevator Pitch
+
+**FairOps** is an AI-powered operations platform for fairs, carnivals, and festivals — *Cursor, but for carnival layout planning.* The industry runs on spreadsheets, paper maps, and cash handshakes despite a **$30B+** North American market. We fix that: **Gemini AI** optimizes booth placement, safety lanes, and layout from a drawn venue map; **Solana escrow** replaces sketchy cash with transparent, on-chain vendor payments; and a **unified dashboard** gives organizers and vendors one place to manage applications, payments, and AI-refined layouts. No more guessing — start optimizing.
+
+---
+
 ## The Problem
 
 Every year, thousands of fairs, carnivals, and festivals across the country are planned using **spreadsheets, paper maps, and cash handshakes**.

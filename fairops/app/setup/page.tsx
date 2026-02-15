@@ -3,7 +3,7 @@ import { getProfileByAuth0Sub } from '@/lib/profile';
 import { redirect } from 'next/navigation';
 import { SetupForm } from '@/components/setup/SetupForm';
 
-const CLAIMS_NAMESPACE = 'https://localhost:3000';
+const CLAIMS_NAMESPACE = 'https://fair-ops.vercel.app';
 
 export default async function SetupPage() {
   const session = await auth0.getSession();
@@ -14,7 +14,7 @@ export default async function SetupPage() {
   const user = session.user;
   const jwtRoles: string[] =
     (user[`${CLAIMS_NAMESPACE}/roles`] as string[] | undefined) ??
-    (user['localhost:3000/roles'] as string[] | undefined) ??
+    (user['fair-ops.vercel.app/roles'] as string[] | undefined) ??
     [];
 
   if (jwtRoles.includes('organizer')) redirect('/dashboard');

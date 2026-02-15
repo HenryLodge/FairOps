@@ -6,14 +6,14 @@ import { redirect } from "next/navigation";
  * Namespace used for custom claims added via Auth0 Post Login Action.
  * Must match the namespace configured in your Auth0 Action.
  */
-const CLAIMS_NAMESPACE = "https://localhost:3000";
+const CLAIMS_NAMESPACE = "https://fair-ops.vercel.app";
 
 async function resolveRoles(
   user: { sub: string; [key: string]: unknown }
 ): Promise<AppRole[]> {
   const jwtRoles: AppRole[] =
     (user[`${CLAIMS_NAMESPACE}/roles`] as AppRole[] | undefined) ??
-    (user["localhost:3000/roles"] as AppRole[] | undefined) ??
+    (user["fair-ops.vercel.app/roles"] as AppRole[] | undefined) ??
     [];
   if (jwtRoles.length > 0) return jwtRoles;
   const profile = await getProfileByAuth0Sub(user.sub);

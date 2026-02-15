@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth0 } from "@/lib/auth0";
 
-const CLAIMS_NAMESPACE = "https://localhost:3000";
+const CLAIMS_NAMESPACE = "https://fair-ops.vercel.app";
 
 /**
  * GET /api/test
