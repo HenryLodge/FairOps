@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import type { GridBounds } from './GridOverlay';
-import { useDashboardStats } from './DashboardStatsContext';
+import { useDashboardStats, type Attractions } from './DashboardStatsContext';
 
 const VenueMap = dynamic(() => import('./VenueMap'), {
   ssr: false,
@@ -44,6 +44,7 @@ type EventData = {
     venue_lat: number | null;
     venue_lng: number | null;
     venue_bounds: GridBounds | null;
+    attractions: Attractions | null;
   };
   vendors: VendorRow[];
   layout: unknown;
@@ -75,7 +76,12 @@ function formatDate(dateStr: string): string {
 type EventListItem = { id: string; name: string; date: string };
 
 export function DashboardContent() {
-  const { setStats } = useDashboardStats();
+  const {
+    setStats,
+    setEventId: setCtxEventId,
+    setAttractions: setCtxAttractions,
+    registerSaveAttractions,
+  } = useDashboardStats();
   const [eventsList, setEventsList] = useState<EventListItem[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [eventData, setEventData] = useState<EventData | null>(null);
@@ -84,10 +90,50 @@ export function DashboardContent() {
   const [error, setError] = useState<string | null>(null);
   const [empty, setEmpty] = useState(false);
 
+  /* Keep a ref to the latest selectedEventId so the save callback is always fresh */
+  const eventIdRef = useRef(selectedEventId);
+  eventIdRef.current = selectedEventId;
+
   useEffect(() => {
     setStats(eventData?.stats ?? null);
     return () => setStats(null);
   }, [eventData?.stats, setStats]);
+
+  /* Push eventId + attractions into the shared context whenever event data changes */
+  useEffect(() => {
+    setCtxEventId(eventData?.event.id ?? null);
+    setCtxAttractions(eventData?.event.attractions ?? {});
+  }, [eventData, setCtxEventId, setCtxAttractions]);
+
+  /* Provide a save function the Sidebar can call to persist attractions */
+  useEffect(() => {
+    const saveFn = async (a: Attractions) => {
+      const eid = eventIdRef.current;
+      if (!eid) {
+        console.warn('[attractions] No eventId, skipping save');
+        return;
+      }
+      try {
+        console.log('[attractions] Saving to event', eid, a);
+        const res = await fetch(`/api/events/${eid}`, {
+          method: 'PUT',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attractions: a }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error('[attractions] Save failed:', res.status, body);
+        } else {
+          console.log('[attractions] Saved successfully');
+        }
+      } catch (err) {
+        console.error('[attractions] Save error:', err);
+      }
+    };
+    registerSaveAttractions(saveFn);
+    return () => registerSaveAttractions(null);
+  }, [registerSaveAttractions]);
 
   const loadDetail = useCallback(async (eventId: string) => {
     setDetailLoading(true);

@@ -8,11 +8,21 @@ import { NextResponse } from 'next/server';
  */
 export async function GET() {
   try {
-    const { data, error } = await supabaseAdmin
+    const { auth } = await getSessionForApi();
+    const organizerId =
+      auth?.roles?.includes('organizer') ? auth.user.sub : null;
+
+    let query = supabaseAdmin
       .from('events')
-      .select('*')
+      .select('id, name, date')
       .order('created_at', { ascending: false })
       .limit(5);
+
+    if (organizerId) {
+      query = query.eq('organizer_id', organizerId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Supabase events fetch error:', error);

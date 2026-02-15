@@ -15,6 +15,7 @@ import { EditControl } from 'react-leaflet-draw';
 import L from 'leaflet';
 import { GridOverlay, type GridBounds } from './GridOverlay';
 import { geocodeLocation } from '../../lib/geocode';
+import { boundsToMetrics } from '../../lib/venueBounds';
 import {
   Minus,
   Plus,
@@ -264,6 +265,14 @@ export default function VenueMap({
       }
     });
   }, [center, event.location]);
+
+  /** Real-world dimensions: from grid bounds, or drawn shapes, or saved (show regardless of grid toggle) */
+  const boundsForMetrics =
+    bounds ??
+    boundsFromLayers(Array.from(drawnLayersRef.current.values())) ??
+    event.venue_bounds ??
+    null;
+  const metrics = boundsToMetrics(boundsForMetrics);
 
   const adjustRows = useCallback((delta: number) => {
     setRows((r) => Math.min(MAX_DIM, Math.max(MIN_DIM, r + delta)));
@@ -572,6 +581,15 @@ export default function VenueMap({
         <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
           {cols} &times; {rows} grid
         </span>
+
+        {/* Venue measurements (when bounds exist) */}
+        {metrics && (
+          <span className="text-xs tabular-nums" style={{ color: 'var(--color-text-tertiary)' }} title="Approximate venue size from plotted area">
+            ~{Math.round(metrics.widthMeters)} m &times; {Math.round(metrics.heightMeters)} m
+            {' '}
+            ({metrics.areaM2 >= 10_000 ? `${(metrics.areaM2 / 10_000).toFixed(1)} ha` : `${Math.round(metrics.areaM2).toLocaleString()} m²`})
+          </span>
+        )}
 
         {/* Save button */}
         <button

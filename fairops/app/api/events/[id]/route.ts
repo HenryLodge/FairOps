@@ -113,6 +113,7 @@ const ALLOWED_UPDATE_KEYS = [
   'venue_lat',
   'venue_lng',
   'venue_bounds',
+  'attractions',
 ] as const;
 
 export async function PUT(
@@ -128,6 +129,7 @@ export async function PUT(
       );
     }
     if (!auth.roles.includes('organizer')) {
+      console.error('PUT /api/events/[id] 403: role check failed. roles=', auth.roles, 'sub=', auth.user.sub);
       return NextResponse.json(
         { error: 'Organizer role required' },
         { status: 403 }
@@ -163,6 +165,7 @@ export async function PUT(
       );
     }
     if (existing.organizer_id !== auth.user.sub) {
+      console.error('PUT /api/events/[id] 403: ownership check failed. organizer_id=', existing.organizer_id, 'sub=', auth.user.sub);
       return NextResponse.json(
         { error: 'Not authorized to update this event' },
         { status: 403 }
@@ -193,20 +196,20 @@ export async function PUT(
       .single();
 
     if (error) {
-      console.error('PUT /api/events/[id] error:', error);
+      const message = error.message ?? String(error);
+      console.error('PUT /api/events/[id] Supabase error:', error.code, message, error.details);
       return NextResponse.json(
-        { error: error.message },
+        { error: message },
         { status: 500 }
       );
     }
 
     return NextResponse.json(data);
   } catch (err) {
-    console.error('PUT /api/events/[id] error:', err);
+    const message = err instanceof Error ? err.message : 'Failed to update event';
+    console.error('PUT /api/events/[id] catch:', err);
     return NextResponse.json(
-      {
-        error: err instanceof Error ? err.message : 'Failed to update event',
-      },
+      { error: message },
       { status: 500 }
     );
   }

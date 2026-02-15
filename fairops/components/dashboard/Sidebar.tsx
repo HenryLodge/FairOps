@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowUp, Paintbrush, Settings, Plus, Activity, Circle, Car, Home, UtensilsCrossed, Camera, Info } from 'lucide-react';
 import Link from 'next/link';
-import { useDashboardStats, formatRevenue } from './DashboardStatsContext';
+import { useDashboardStats, formatRevenue, type Attractions } from './DashboardStatsContext';
 
 const COUNTER_ITEMS = [
   { id: 'roller_coaster', label: 'Roller Coaster', icon: Activity },
@@ -15,20 +15,54 @@ const COUNTER_ITEMS = [
   { id: 'info_booth', label: 'Info Booth', icon: Info },
 ] as const;
 
+const DEFAULT_COUNTS: Attractions = {
+  roller_coaster: 0,
+  ferris_wheel: 0,
+  bumper_car: 0,
+  fun_house: 0,
+  food_stand: 0,
+  photo_booth: 0,
+  info_booth: 0,
+};
+
+const SAVE_DEBOUNCE_MS = 800;
+
 export function Sidebar() {
-  const { stats } = useDashboardStats();
-  const [counts, setCounts] = useState<Record<string, number>>({
-    roller_coaster: 0,
-    ferris_wheel: 0,
-    bumper_car: 0,
-    fun_house: 0,
-    food_stand: 0,
-    photo_booth: 0,
-    info_booth: 0,
-  });
+  const { stats, attractions, setAttractions, saveAttractions } = useDashboardStats();
+
+  /* Local counter state — initialised from context (DB) whenever attractions change */
+  const [counts, setCounts] = useState<Attractions>(DEFAULT_COUNTS);
+  const initialised = useRef(false);
+
+  useEffect(() => {
+    if (Object.keys(attractions).length > 0 || !initialised.current) {
+      setCounts({ ...DEFAULT_COUNTS, ...attractions });
+      initialised.current = true;
+    }
+  }, [attractions]);
+
+  /* Debounced save: fires SAVE_DEBOUNCE_MS after last change */
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const debouncedSave = useCallback(
+    (next: Attractions) => {
+      /* Push into shared context immediately so other components see the change */
+      setAttractions(next);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        saveAttractions?.(next);
+      }, SAVE_DEBOUNCE_MS);
+    },
+    [setAttractions, saveAttractions]
+  );
+
+  /* Clean up timer on unmount */
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   const adjust = (id: string, delta: number) => {
-    setCounts((prev) => ({ ...prev, [id]: Math.max(0, (prev[id] ?? 0) + delta) }));
+    const next = { ...counts, [id]: Math.max(0, (counts[id] ?? 0) + delta) };
+    setCounts(next);
+    debouncedSave(next);
   };
 
   return (
